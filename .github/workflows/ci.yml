@@ -42,7 +42,7 @@ jobs:
         run: bin/rubocop -f github
 
       - name: DB 準備
-        run: bin/rails db:prepare
+        run: bin/rails db:test:prepare
 
       - name: RSpec
         run: bundle exec rspec
