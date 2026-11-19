@@ -3,6 +3,16 @@ class ApplicationController < ActionController::API
   include ActionController::Cookies
   include OriginVerification
   include Authentication
+  include Pagination
+
+  # params.expect で必要なキーが無い・許可していない項目しか無い場合
+  rescue_from ActionController::ParameterMissing do
+    render json: { message: "リクエストの形式が正しくありません" }, status: :bad_request
+  end
+
+  rescue_from ActiveRecord::RecordNotFound do
+    render json: { message: "見つかりませんでした" }, status: :not_found
+  end
 
   private
 
@@ -15,5 +25,6 @@ class ApplicationController < ActionController::API
   # レスポンスに含めるユーザー情報。メールアドレスは本人向けの API でのみ返す
   def user_json(user)
     user.as_json(only: %i[id email role created_at])
+        .merge("has_profile" => user.profile.present?)
   end
 end

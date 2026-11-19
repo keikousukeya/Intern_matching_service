@@ -9,6 +9,10 @@ module RequestHelpers
     post path, params: params.to_json, headers: json_headers(**options)
   end
 
+  def json_put(path, params = {}, **options)
+    put path, params: params.to_json, headers: json_headers(**options)
+  end
+
   def log_in_as(user, password: "password123")
     json_post "/api/session", { session: { email: user.email, password: password } }
   end

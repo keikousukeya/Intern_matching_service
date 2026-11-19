@@ -21,6 +21,14 @@ module Authentication
     render json: { message: "ログインしてください" }, status: :unauthorized
   end
 
+  # 特定のロールだけが使えるアクションで before_action として使う（require_login! の後に置く）
+  #   before_action -> { require_role!(:company) }
+  def require_role!(role)
+    return if current_user&.role == role.to_s
+
+    render json: { message: "この操作を行う権限がありません" }, status: :forbidden
+  end
+
   # セッション固定攻撃を防ぐため、ログイン時は必ずセッション ID を作り直す
   def log_in(user)
     reset_session

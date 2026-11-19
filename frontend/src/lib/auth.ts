@@ -1,6 +1,6 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { ApiError, apiFetch } from "./api";
 
 export type Role = "student" | "company";
@@ -10,6 +10,8 @@ export type User = {
   email: string;
   role: Role;
   created_at: string;
+  /** プロフィールを登録済みか */
+  has_profile: boolean;
 };
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -19,7 +21,7 @@ export const ROLE_LABELS: Record<Role, string> = {
 
 type UserResponse = { user: User };
 
-const ME_KEY = "/me";
+export const ME_KEY = "/me";
 
 // 未ログイン（401）はエラーではなく「ユーザーなし」として扱う
 async function fetchCurrentUser(): Promise<User | null> {
@@ -34,27 +36,37 @@ async function fetchCurrentUser(): Promise<User | null> {
 
 /** ログイン中のユーザーを取得する。ログイン・ログアウト時はキャッシュを更新して画面に反映する */
 export function useCurrentUser() {
+  const { mutate: globalMutate } = useSWRConfig();
   const { data, error, isLoading, mutate } = useSWR(ME_KEY, fetchCurrentUser, {
     revalidateOnFocus: false,
   });
+
+  // ユーザーが切り替わるときは、前のユーザーのデータ（プロフィールなど）をキャッシュから消す。
+  // 同じタブで別アカウントにログインしたとき、前のユーザーの情報が一瞬でも表示されないようにするため。
+  async function switchUser(user: User | null) {
+    await globalMutate((key) => key !== ME_KEY, undefined, { revalidate: false });
+    await mutate(user, { revalidate: false });
+  }
 
   return {
     user: data ?? null,
     isLoading,
     error,
+    /** サーバーから最新のユーザー情報を取り直す（has_profile の更新など） */
+    refresh: () => mutate(),
     async signUp(params: { email: string; password: string; password_confirmation: string; role: Role }) {
       const { user } = await apiFetch<UserResponse>("/registration", { method: "POST", body: { user: params } });
-      await mutate(user, { revalidate: false });
+      await switchUser(user);
       return user;
     },
     async logIn(params: { email: string; password: string }) {
       const { user } = await apiFetch<UserResponse>("/session", { method: "POST", body: { session: params } });
-      await mutate(user, { revalidate: false });
+      await switchUser(user);
       return user;
     },
     async logOut() {
       await apiFetch<void>("/session", { method: "DELETE" });
-      await mutate(null, { revalidate: false });
+      await switchUser(null);
     },
   };
 }
