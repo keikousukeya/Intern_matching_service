@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiError, type FieldErrors } from "@/lib/api";
 import { ROLE_LABELS, useCurrentUser, type Role } from "@/lib/auth";
 import { FormAlert } from "./FormAlert";
@@ -23,9 +23,12 @@ export function SignUpForm() {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // ログイン済みならトップへ
+  // 登録処理の直後かどうか（登録後はプロフィール入力へ移動するため、下のトップへの移動と競合させない）
+  const signedUpRef = useRef(false);
+
+  // すでにログイン済みでこの画面を開いた場合はトップへ
   useEffect(() => {
-    if (user) router.replace("/");
+    if (user && !signedUpRef.current) router.replace("/");
   }, [user, router]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -36,14 +39,17 @@ export function SignUpForm() {
     setFormError(null);
 
     try {
+      signedUpRef.current = true;
       await signUp({
         email: String(form.get("email")),
         password: String(form.get("password")),
         password_confirmation: String(form.get("password_confirmation")),
         role,
       });
-      router.push("/");
+      // 登録直後はプロフィール入力へ案内する（登録時の入力を最小限にし、詳細は後から入力してもらう）
+      router.push("/mypage/profile");
     } catch (error) {
+      signedUpRef.current = false;
       if (error instanceof ApiError) {
         setFieldErrors(error.errors);
         setFormError(error.message);

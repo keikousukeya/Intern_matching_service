@@ -16,7 +16,7 @@ export class ApiError extends Error {
 }
 
 type RequestOptions = {
-  method?: "GET" | "POST" | "PATCH" | "DELETE";
+  method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
 };
 
@@ -48,4 +48,9 @@ export async function apiFetch<T>(path: string, { method = "GET", body }: Reques
     );
   }
   return data as T;
+}
+
+/** SWR 用の取得関数（キーに API のパスを使う） */
+export function fetcher<T>(path: string): Promise<T> {
+  return apiFetch<T>(path);
 }

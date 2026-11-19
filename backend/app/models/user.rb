@@ -6,6 +6,9 @@ class User < ApplicationRecord
 
   enum :role, { student: 0, company: 1 }, validate: true
 
+  has_one :student_profile, dependent: :destroy
+  has_one :company_profile, dependent: :destroy
+
   # 前後の空白を除き小文字にそろえる（大文字小文字違いの重複登録を防ぐ）
   normalizes :email, with: ->(email) { email.strip.downcase }
 
@@ -13,4 +16,14 @@ class User < ApplicationRecord
                     format: { with: URI::MailTo::EMAIL_REGEXP, allow_blank: true },
                     uniqueness: true
   validates :password, length: { in: PASSWORD_LENGTH }, allow_nil: true
+
+  # ロールに応じたプロフィール（未登録なら nil）
+  def profile
+    student? ? student_profile : company_profile
+  end
+
+  # ロールに応じたプロフィールを、未登録なら新しく組み立てて返す（保存はしない）
+  def profile_or_build
+    profile || (student? ? build_student_profile : build_company_profile)
+  end
 end

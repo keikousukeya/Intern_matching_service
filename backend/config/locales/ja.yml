@@ -2,9 +2,51 @@ ja:
   activerecord:
     models:
       user: ユーザー
+      student_profile: インターン生プロフィール
+      company_profile: 企業プロフィール
+      skill: スキル
     attributes:
       user:
         email: メールアドレス
         password: パスワード
         password_confirmation: パスワード（確認）
         role: 登録区分
+      student_profile:
+        user: ユーザー
+        name: 氏名
+        university: 大学
+        faculty: 学部・学科
+        graduation_year: 卒業予定年
+        desired_role: 志望職種
+        bio: 自己紹介
+        portfolio_url: ポートフォリオ URL
+        github_url: GitHub URL
+        available_from: 希望期間（開始）
+        available_to: 希望期間（終了）
+        skill_names: スキル
+      company_profile:
+        user: ユーザー
+        company_name: 企業名
+        contact_name: 担当者名
+        description: 企業概要
+        website: Web サイト
+      skill:
+        name: スキル名
+    errors:
+      models:
+        student_profile:
+          attributes:
+            user:
+              must_be_student: はインターン生アカウントである必要があります
+            available_to:
+              after_available_from: は開始日以降の日付にしてください
+            skill_names:
+              too_many: は%{count}個まで登録できます
+              name_too_long: は1つあたり%{count}文字以内で入力してください
+        company_profile:
+          attributes:
+            user:
+              must_be_company: は企業アカウントである必要があります
+  errors:
+    messages:
+      invalid_url: は http:// または https:// から始まる URL を入力してください
