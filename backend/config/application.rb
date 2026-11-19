@@ -55,6 +55,9 @@ module InternScout
     config.middleware.use ActionDispatch::Cookies
     config.middleware.use config.session_store, config.session_options
 
+    # CSRF 対策で状態変更リクエストを受け付けるオリジン（カンマ区切りで複数指定可）
+    config.x.allowed_origins = ENV.fetch("FRONTEND_ORIGINS", "http://localhost:3000").split(",").map(&:strip)
+
     # ジェネレータ: テストは RSpec、不要なファイルは生成しない
     config.generators do |g|
       g.test_framework :rspec, fixtures: false, view_specs: false, helper_specs: false, routing_specs: false
