@@ -1,0 +1,14 @@
+# OS / エディタ
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# 環境変数
+.env
+.env.*
+!.env.example
+
+# 個人用の作業メモ・仕様書（リポジトリには含めない）
+/要件仕様書.md
+/作業内容.txt

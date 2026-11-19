@@ -1,0 +1,59 @@
+# ローカル開発環境: docker compose up で DB / Rails / Next.js を一括起動する
+services:
+  db:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    command: bash -c "rm -f tmp/pids/server.pid && bin/rails db:prepare && bin/rails server -b 0.0.0.0 -p 3000"
+    volumes:
+      - ./backend:/app
+      - bundle:/usr/local/bundle
+    environment:
+      # DB 名は config/database.yml 側の設定が使われる
+      DATABASE_URL: postgres://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-password}@db:5432
+      RAILS_ENV: development
+    ports:
+      - "3001:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    tty: true
+    stdin_open: true
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    command: npm run dev
+    volumes:
+      - ./frontend:/app
+      - node_modules:/app/node_modules
+    environment:
+      # Next.js の rewrites から Rails API へ中継する先（コンテナ間通信）
+      API_ORIGIN: http://backend:3000
+      # Windows のバインドマウントでもファイル変更を検知させる
+      WATCHPACK_POLLING: "true"
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  bundle:
+  node_modules:

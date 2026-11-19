@@ -1,0 +1,5 @@
+# Windows 環境でも bin/ 配下のスクリプトが動くよう、改行コードを LF に統一する
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.ico binary

@@ -1,0 +1,25 @@
+# Rails 標準の除外設定（rails new --skip-git で生成されなかったため追加）
+/.bundle
+
+# 環境変数ファイル
+/.env*
+
+# ログ・一時ファイル
+/log/*
+/tmp/*
+!/log/.keep
+!/tmp/.keep
+/tmp/pids/*
+!/tmp/pids/
+!/tmp/pids/.keep
+
+# アップロードファイル（Active Storage）
+/storage/*
+!/storage/.keep
+/tmp/storage/*
+!/tmp/storage/
+!/tmp/storage/.keep
+
+# 秘密鍵（credentials の復号キー）は絶対にコミットしない
+/config/master.key
+/config/credentials/*.key

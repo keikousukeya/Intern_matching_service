@@ -1,0 +1,5 @@
+# 依存関係とビルド成果物はイメージ内で生成する
+node_modules
+.next
+out
+.env*
