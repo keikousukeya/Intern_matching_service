@@ -56,7 +56,7 @@ docker compose exec backend bin/rubocop
 
 # lint・型チェック（フロントエンド）
 docker compose exec frontend npm run lint
-docker compose exec frontend npx tsc --noEmit
+docker compose exec frontend npm run typecheck
 
 # gem / npm パッケージを追加したとき
 docker compose exec backend bundle install
