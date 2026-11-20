@@ -5,6 +5,9 @@ ja:
       student_profile: インターン生プロフィール
       company_profile: 企業プロフィール
       skill: スキル
+      conversation: 会話
+      conversation_participant: 会話の参加者
+      message: メッセージ
     attributes:
       user:
         email: メールアドレス
@@ -32,6 +35,14 @@ ja:
         website: Web サイト
       skill:
         name: スキル名
+      conversation:
+        company: 企業
+        student: インターン生
+      conversation_participant:
+        user: ユーザー
+      message:
+        body: 本文
+        sender: 送信者
     errors:
       models:
         student_profile:
@@ -47,6 +58,18 @@ ja:
           attributes:
             user:
               must_be_company: は企業アカウントである必要があります
+        conversation:
+          attributes:
+            company:
+              must_be_company: は企業アカウントである必要があります
+            student:
+              must_be_student: はインターン生アカウントである必要があります
+            student_id:
+              taken: との会話はすでに存在します
+        message:
+          attributes:
+            sender:
+              must_be_participant: はこの会話の参加者である必要があります
   errors:
     messages:
       invalid_url: は http:// または https:// から始まる URL を入力してください

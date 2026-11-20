@@ -4,12 +4,19 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Suspense } from "react";
 import { ROLE_LABELS, useCurrentUser, type Role } from "@/lib/auth";
+import { useUnreadCount } from "@/lib/messages";
+
+const MESSAGES_HREF = "/messages";
 
 /** ロールごとのメニュー */
 const NAV_LINKS: Record<Role, { href: string; label: string }[]> = {
-  student: [{ href: "/mypage/profile", label: "プロフィール" }],
+  student: [
+    { href: MESSAGES_HREF, label: "メッセージ" },
+    { href: "/mypage/profile", label: "プロフィール" },
+  ],
   company: [
     { href: "/students", label: "インターン生を探す" },
+    { href: MESSAGES_HREF, label: "メッセージ" },
     { href: "/mypage/profile", label: "企業プロフィール" },
   ],
 };
@@ -18,6 +25,8 @@ const NAV_LINKS: Record<Role, { href: string; label: string }[]> = {
 export function Header() {
   const router = useRouter();
   const { user, isLoading, logOut } = useCurrentUser();
+  // 未読メッセージ数（ログイン中のみ定期的に取得する）
+  const unreadCount = useUnreadCount(user !== null);
 
   async function handleLogOut() {
     await logOut();
@@ -36,7 +45,7 @@ export function Header() {
             <>
               {/* 現在のページの判定（usePathname）は URL に依存するため Suspense で囲む（Cache Components の要件） */}
               <Suspense fallback={null}>
-                <NavLinks role={user.role} />
+                <NavLinks role={user.role} unreadCount={unreadCount} />
               </Suspense>
               <span className="hidden text-slate-600 md:inline">
                 <span className="mr-2 rounded bg-indigo-50 px-2 py-0.5 text-xs font-medium text-indigo-700">
@@ -71,8 +80,8 @@ export function Header() {
   );
 }
 
-/** ロールごとのメニュー。表示中のページのリンクを強調する */
-function NavLinks({ role }: { role: Role }) {
+/** ロールごとのメニュー。表示中のページのリンクを強調し、メッセージには未読数のバッジを付ける */
+function NavLinks({ role, unreadCount }: { role: Role; unreadCount: number }) {
   const pathname = usePathname();
 
   return NAV_LINKS[role].map((link) => (
@@ -80,9 +89,17 @@ function NavLinks({ role }: { role: Role }) {
       key={link.href}
       href={link.href}
       aria-current={pathname.startsWith(link.href) ? "page" : undefined}
-      className="px-2 py-1.5 text-slate-700 hover:text-indigo-600 aria-[current=page]:font-medium aria-[current=page]:text-indigo-600"
+      className="inline-flex items-center gap-1.5 px-2 py-1.5 text-slate-700 hover:text-indigo-600 aria-[current=page]:font-medium aria-[current=page]:text-indigo-600"
     >
       {link.label}
+      {link.href === MESSAGES_HREF && unreadCount > 0 && (
+        <span
+          className="rounded-full bg-rose-500 px-1.5 py-0.5 text-xs font-bold leading-none text-white"
+          aria-label={`未読 ${unreadCount} 件`}
+        >
+          {unreadCount > 99 ? "99+" : unreadCount}
+        </span>
+      )}
     </Link>
   ));
 }

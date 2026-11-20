@@ -19,7 +19,13 @@ export function useStudents(page: number) {
   });
 }
 
-/** 企業向け: インターン生の詳細（id はユーザー ID） */
+/**
+ * 企業向け: インターン生の詳細（id はユーザー ID）。
+ * conversation_id は、このインターン生との会話が既にあればその ID（無ければ null）
+ */
 export function useStudent(id: string) {
-  return useSWR<{ student: StudentProfile }>(`/students/${encodeURIComponent(id)}`, fetcher);
+  return useSWR<{ student: StudentProfile; conversation_id: number | null }>(
+    `/students/${encodeURIComponent(id)}`,
+    fetcher,
+  );
 }

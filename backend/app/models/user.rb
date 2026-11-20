@@ -9,6 +9,10 @@ class User < ApplicationRecord
   has_one :student_profile, dependent: :destroy
   has_one :company_profile, dependent: :destroy
 
+  # 参加している会話（メッセージ機能）
+  has_many :conversation_participants, dependent: :destroy
+  has_many :conversations, through: :conversation_participants
+
   # 前後の空白を除き小文字にそろえる（大文字小文字違いの重複登録を防ぐ）
   normalizes :email, with: ->(email) { email.strip.downcase }
 

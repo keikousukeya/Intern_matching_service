@@ -14,10 +14,12 @@ module Api
     end
 
     # GET /api/students/:id
+    # conversation_id: このインターン生との会話が既にあればその ID（画面で「送信」か「会話を開く」かを切り替える）
     def show
       profile = StudentProfile.includes(:skills).find_by!(user_id: params[:id])
+      conversation = Conversation.find_by(company: current_user, student_id: profile.user_id)
 
-      render json: { student: StudentProfileSerializer.call(profile) }
+      render json: { student: StudentProfileSerializer.call(profile), conversation_id: conversation&.id }
     end
   end
 end

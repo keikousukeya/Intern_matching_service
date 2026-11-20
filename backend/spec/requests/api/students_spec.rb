@@ -62,6 +62,16 @@ RSpec.describe "Api::Students", type: :request do
       expect(response.parsed_body["student"]).not_to have_key("email")
     end
 
+    it "このインターン生との会話があれば conversation_id を返す（無ければ nil）" do
+      log_in_as(company)
+      get "/api/students/#{profile.user_id}"
+      expect(response.parsed_body["conversation_id"]).to be_nil
+
+      conversation = create(:conversation, company: company, student: profile.user)
+      get "/api/students/#{profile.user_id}"
+      expect(response.parsed_body["conversation_id"]).to eq(conversation.id)
+    end
+
     it "インターン生は他の学生の詳細を閲覧できない（403）" do
       log_in_as(create(:user))
       get "/api/students/#{profile.user_id}"

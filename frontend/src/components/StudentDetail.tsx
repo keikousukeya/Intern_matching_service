@@ -1,22 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { ReactNode } from "react";
 import { ApiError } from "@/lib/api";
+import type { User } from "@/lib/auth";
 import { formatPeriod, isSafeUrl } from "@/lib/format";
+import { useMessageActions } from "@/lib/messages";
 import { useStudent } from "@/lib/students";
 import { FormAlert } from "./FormAlert";
 import { Loading } from "./Loading";
+import { MessageComposer } from "./MessageComposer";
 import { RequireUser } from "./RequireUser";
 import { SkillTag } from "./SkillTag";
 
-/** 企業向け: インターン生プロフィールの詳細 */
+/** 企業向け: インターン生プロフィールの詳細。ここからスカウト（メッセージ）を送る */
 export function StudentDetail({ id }: { id: string }) {
-  return <RequireUser role="company">{() => <Detail id={id} />}</RequireUser>;
+  return <RequireUser role="company">{(user) => <Detail id={id} user={user} />}</RequireUser>;
 }
 
-function Detail({ id }: { id: string }) {
-  const { data, error, isLoading } = useStudent(id);
+function Detail({ id, user }: { id: string; user: User }) {
+  const { data, error, isLoading, mutate } = useStudent(id);
 
   if (isLoading) return <Loading />;
   if (error instanceof ApiError && error.status === 404) {
@@ -84,10 +88,78 @@ function Detail({ id }: { id: string }) {
         </Item>
       </dl>
 
+      <ScoutSection
+        studentId={student.user_id}
+        studentName={student.name}
+        conversationId={data.conversation_id}
+        hasCompanyProfile={user.has_profile}
+        onStarted={(conversationId) => mutate({ ...data, conversation_id: conversationId }, { revalidate: false })}
+      />
+
       <Link href="/students" className="self-start text-sm text-indigo-600 hover:underline">
         ← インターン生一覧へ戻る
       </Link>
     </article>
+  );
+}
+
+/**
+ * スカウトの送信欄。会話が既にあれば（企業×インターン生で 1 スレッド）その会話へのリンクを出し、
+ * 無ければ最初のメッセージを書いて送る。送信後は会話の画面へ移動する
+ */
+function ScoutSection({
+  studentId,
+  studentName,
+  conversationId,
+  hasCompanyProfile,
+  onStarted,
+}: {
+  studentId: number;
+  studentName: string;
+  conversationId: number | null;
+  hasCompanyProfile: boolean;
+  /** 送信後、詳細のキャッシュに会話 ID を反映する（戻ったときに「メッセージを開く」と表示するため） */
+  onStarted: (conversationId: number) => unknown;
+}) {
+  const router = useRouter();
+  const { startConversation } = useMessageActions();
+
+  async function handleSend(body: string) {
+    const id = await startConversation(studentId, body);
+    await onStarted(id);
+    router.push(`/messages/${id}`);
+  }
+
+  return (
+    <section className="flex flex-col gap-3 rounded-xl border border-indigo-100 bg-indigo-50/50 p-4 sm:p-5">
+      <h2 className="font-bold">スカウトを送る</h2>
+      {conversationId ? (
+        <>
+          <p className="text-sm text-slate-600">{studentName}さんとは、すでにメッセージのやり取りがあります。</p>
+          <Link
+            href={`/messages/${conversationId}`}
+            className="self-start rounded-lg bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700"
+          >
+            メッセージを開く
+          </Link>
+        </>
+      ) : hasCompanyProfile ? (
+        <>
+          <p className="text-sm text-slate-600">
+            プロフィールのどこに魅力を感じたか、インターンで任せたい業務などを伝えると返信につながりやすくなります。
+          </p>
+          <MessageComposer onSend={handleSend} placeholder={`${studentName}さんへのメッセージ`} />
+        </>
+      ) : (
+        <p className="text-sm text-slate-600">
+          スカウトの送信者として企業名を表示するため、先に
+          <Link href="/mypage/profile" className="mx-1 text-indigo-600 hover:underline">
+            企業プロフィール
+          </Link>
+          を登録してください。
+        </p>
+      )}
+    </section>
   );
 }
 

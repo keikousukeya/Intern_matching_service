@@ -41,6 +41,9 @@ export function Welcome() {
             インターン生を探す
           </Link>
         )}
+        <Link href="/messages" className={user.role === "student" && user.has_profile ? PRIMARY_LINK : SECONDARY_LINK}>
+          {user.role === "student" ? "届いたメッセージを見る" : "メッセージ一覧"}
+        </Link>
         <Link href="/mypage/profile" className={user.has_profile ? SECONDARY_LINK : PRIMARY_LINK}>
           {user.has_profile ? "プロフィールを編集する" : "プロフィールを登録する"}
         </Link>
