@@ -103,7 +103,40 @@ ActiveRecord::Base.transaction do
       skill_names: skills
     )
   end
+
+  # メッセージ: 企業 1・2 から学生 1〜3 へのスカウト（返信あり・未読あり・既読のみ が混ざるようにする）
+  # [企業番号, 学生番号, [[送信者, 何時間前, 本文], ...]]
+  conversations = [
+    [ 1, 1, [
+      [ :company, 50, "はじめまして。プロフィールを拝見し、Web アプリの個人開発の経験に惹かれてご連絡しました。弊社の長期インターンについて、一度オンラインでお話ししませんか？" ],
+      [ :student, 30, "ご連絡ありがとうございます！ぜひお話を伺いたいです。平日の夕方以降であれば調整可能です。" ],
+      [ :company, 5, "ありがとうございます。来週の水曜日 18 時からはいかがでしょうか？" ]
+    ] ],
+    [ 2, 1, [
+      [ :company, 20, "データ分析に関するご経験について、詳しくお聞きしたくご連絡しました。週 2 日からの参加も可能です。" ]
+    ] ],
+    [ 1, 2, [
+      [ :company, 72, "インターン募集のご案内です。ご興味があれば返信をお待ちしています。" ],
+      [ :student, 48, "ありがとうございます。業務内容について詳しく教えていただけますか？" ]
+    ] ],
+    [ 1, 3, [
+      [ :company, 10, "React を使ったフロントエンド開発のインターンを募集しています。ご興味はありますか？" ]
+    ] ]
+  ]
+
+  conversations.each do |company_number, student_number, messages|
+    company = User.find_by!(email: "company#{company_number}@example.com")
+    student = User.find_by!(email: "student#{student_number}@example.com")
+    conversation = Conversation.find_or_start!(company: company, student: student)
+    # 2 回目以降の実行でメッセージが増えないよう、空の会話にだけ投入する
+    next if conversation.messages.exists?
+
+    messages.each do |sender, hours_ago, body|
+      conversation.messages.create!(sender: sender == :company ? company : student, body: body,
+                                    created_at: hours_ago.hours.ago)
+    end
+  end
 end
 
-puts "シードデータを投入しました: 企業 #{CompanyProfile.count} 件 / インターン生 #{StudentProfile.count} 件 / スキル #{Skill.count} 件"
+puts "シードデータを投入しました: 企業 #{CompanyProfile.count} 件 / インターン生 #{StudentProfile.count} 件 / スキル #{Skill.count} 件 / 会話 #{Conversation.count} 件"
 puts "ログイン例: student1@example.com / company1@example.com（パスワードは #{PASSWORD}）"

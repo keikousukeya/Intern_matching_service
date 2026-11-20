@@ -37,6 +37,8 @@ end
 RSpec.configure do |config|
   # create(:user) のように FactoryBot を省略して呼べるようにする
   config.include FactoryBot::Syntax::Methods
+  # travel / travel_to で時刻をずらせるようにする（既読・並び順のテスト用）
+  config.include ActiveSupport::Testing::TimeHelpers
 
   # Remove this line if you're not using ActiveRecord or ActiveRecord fixtures
   config.fixture_paths = [

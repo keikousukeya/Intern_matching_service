@@ -15,5 +15,13 @@ Rails.application.routes.draw do
 
     resources :students, only: %i[index show] # 企業向け: インターン生の一覧・詳細
     resources :skills, only: :index           # スキル入力の候補
+    resources :companies, only: :show         # 企業プロフィールの詳細（スカウトの送信元の確認用）
+
+    # メッセージ（F-02）。会話は企業×インターン生で 1 件
+    resources :conversations, only: %i[index show create] do
+      get :unread_count, on: :collection # GET /api/conversations/unread_count  未読の合計
+      put :read, on: :member             # PUT /api/conversations/:id/read     既読にする
+      resources :messages, only: :create # POST /api/conversations/:id/messages 返信・追加の送信
+    end
   end
 end

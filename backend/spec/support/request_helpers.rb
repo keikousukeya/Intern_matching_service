@@ -18,6 +18,9 @@ module RequestHelpers
   end
 end
 
+# expect { ... }.to change(A, :count).and not_change(B, :count) のように書けるようにする
+RSpec::Matchers.define_negated_matcher :not_change, :change
+
 RSpec.configure do |config|
   config.include RequestHelpers, type: :request
 end

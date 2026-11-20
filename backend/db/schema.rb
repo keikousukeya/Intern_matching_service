@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_19_110200) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_20_100000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -23,6 +23,37 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_110200) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_company_profiles_on_user_id", unique: true
+  end
+
+  create_table "conversation_participants", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.bigint "user_id", null: false
+    t.datetime "last_read_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "user_id"], name: "index_conversation_participants_on_conversation_id_and_user_id", unique: true
+    t.index ["user_id"], name: "index_conversation_participants_on_user_id"
+  end
+
+  create_table "conversations", force: :cascade do |t|
+    t.bigint "company_id", null: false
+    t.bigint "student_id", null: false
+    t.datetime "last_message_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["company_id", "student_id"], name: "index_conversations_on_company_id_and_student_id", unique: true
+    t.index ["last_message_at"], name: "index_conversations_on_last_message_at"
+    t.index ["student_id"], name: "index_conversations_on_student_id"
+  end
+
+  create_table "messages", force: :cascade do |t|
+    t.bigint "conversation_id", null: false
+    t.bigint "sender_id", null: false
+    t.text "body", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["conversation_id", "created_at"], name: "index_messages_on_conversation_id_and_created_at"
+    t.index ["sender_id"], name: "index_messages_on_sender_id"
   end
 
   create_table "skills", force: :cascade do |t|
@@ -70,6 +101,12 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_19_110200) do
   end
 
   add_foreign_key "company_profiles", "users"
+  add_foreign_key "conversation_participants", "conversations"
+  add_foreign_key "conversation_participants", "users"
+  add_foreign_key "conversations", "users", column: "company_id"
+  add_foreign_key "conversations", "users", column: "student_id"
+  add_foreign_key "messages", "conversations"
+  add_foreign_key "messages", "users", column: "sender_id"
   add_foreign_key "student_profiles", "users"
   add_foreign_key "student_skills", "skills"
   add_foreign_key "student_skills", "student_profiles"
