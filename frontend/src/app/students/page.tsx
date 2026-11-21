@@ -8,8 +8,8 @@ export const metadata: Metadata = { title: "インターン生を探す | Intern
 
 export default function StudentsPage() {
   return (
-    <PageContainer title="インターン生を探す" description="スキル・希望期間・志望職種を比べて、気になるインターン生のプロフィールを確認できます。">
-      {/* ページ番号（?page=）は URL から読むため、その部分だけ Suspense で囲む */}
+    <PageContainer title="インターン生を探す" description="キーワード・スキル・大学・卒業予定年・志望職種で絞り込んで、気になるインターン生のプロフィールを確認できます。">
+      {/* 検索条件・ページ番号は URL から読むため、その部分だけ Suspense で囲む */}
       <Suspense fallback={<Loading />}>
         <StudentList />
       </Suspense>

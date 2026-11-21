@@ -27,9 +27,6 @@ class StudentProfile < ApplicationRecord
   normalizes :name, :university, :faculty, :desired_role, :portfolio_url, :github_url,
              with: ->(value) { value.strip.presence }
 
-  # 新着順（同時刻は ID の大きい方を先に）
-  scope :newest_first, -> { order(created_at: :desc, id: :desc) }
-
   after_save :sync_skills
 
   # スキル名の配列で登録する。保存時にマスタと突き合わせ、無いスキルは作る。
