@@ -1,5 +1,6 @@
 # 開発用 Rails イメージ（本番用 Dockerfile は rails new が生成するものを利用）
-FROM ruby:3.4
+# .ruby-version・Dockerfile と同じ版に固定する（脆弱性の修正版を確実に使うため）
+FROM ruby:3.4.13
 
 RUN apt-get update -qq \
   && apt-get install -y --no-install-recommends libpq-dev postgresql-client \
