@@ -42,6 +42,50 @@ RSpec.describe "Api::Students", type: :request do
       )
     end
 
+    it "検索条件で絞り込み、件数とページ情報も絞り込み後の値になる" do
+      target = create(:student_profile, university: "東都大学", skill_names: [ "Ruby", "React" ])
+      create(:student_profile, university: "東都大学", skill_names: [ "Ruby" ])
+      create(:student_profile, university: "西京大学", skill_names: [ "Ruby", "React" ])
+      log_in_as(company)
+
+      get "/api/students", params: { university: "東都", skills: [ "ruby", "react" ], skill_match: "all" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["students"].pluck("user_id")).to eq([ target.user_id ])
+      expect(response.parsed_body["meta"]).to include("total_count" => 1, "total_pages" => 1)
+    end
+
+    it "skill_match=any ならいずれかのスキルを持つ人を返す" do
+      create(:student_profile, skill_names: [ "Ruby" ])
+      create(:student_profile, skill_names: [ "Go" ])
+      create(:student_profile, skill_names: [ "PHP" ])
+      log_in_as(company)
+
+      get "/api/students", params: { skills: [ "Ruby", "Go" ], skill_match: "any" }
+
+      expect(response.parsed_body["meta"]["total_count"]).to eq(2)
+    end
+
+    it "sort=updated なら更新順で返す" do
+      updated = create(:student_profile, created_at: 2.days.ago, updated_at: 1.minute.ago)
+      newer = create(:student_profile, created_at: 1.day.ago, updated_at: 1.day.ago)
+      log_in_as(company)
+
+      get "/api/students", params: { sort: "updated" }
+
+      expect(response.parsed_body["students"].pluck("user_id")).to eq([ updated.user_id, newer.user_id ])
+    end
+
+    it "型が違う検索条件（q に配列、skills に文字列）は無視する" do
+      create(:student_profile)
+      log_in_as(company)
+
+      get "/api/students", params: { q: [ "a" ], skills: "Ruby" }
+
+      expect(response).to have_http_status(:ok)
+      expect(response.parsed_body["meta"]["total_count"]).to eq(1)
+    end
+
     it "不正なページ番号は 1 ページ目として扱う" do
       log_in_as(company)
       get "/api/students", params: { page: "abc" }

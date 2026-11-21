@@ -12,6 +12,10 @@ type Props = {
   value: string[];
   onChange: (skills: string[]) => void;
   errors?: string[];
+  /** 検索フォームなど、プロフィール編集以外で使うときに表示を変える */
+  label?: string;
+  hint?: string;
+  max?: number;
 };
 
 /** 入力が止まってから値を反映する（1 文字ごとに API を呼ばないため） */
@@ -29,7 +33,7 @@ function useDebounced<T>(value: T, delay = 250) {
  * 入力中の文字に部分一致するスキルを候補（datalist）に出し、候補に無いスキルもそのまま追加できる。
  * 大文字小文字だけが違うものは重複として追加しない（サーバー側でも同じ扱い）。
  */
-export function SkillInput({ value, onChange, errors = [] }: Props) {
+export function SkillInput({ value, onChange, errors = [], label = "スキル", hint, max = MAX_SKILLS }: Props) {
   const [text, setText] = useState("");
   const query = useDebounced(text.trim());
   const { data } = useSWR<{ skills: string[] }>(`/skills?q=${encodeURIComponent(query)}`, fetcher, {
@@ -39,7 +43,7 @@ export function SkillInput({ value, onChange, errors = [] }: Props) {
 
   const lowerValue = value.map((skill) => skill.toLowerCase());
   const suggestions = (data?.skills ?? []).filter((skill) => !lowerValue.includes(skill.toLowerCase()));
-  const isFull = value.length >= MAX_SKILLS;
+  const isFull = value.length >= max;
 
   function add(raw: string) {
     const name = raw.replace(/\s+/g, " ").trim().slice(0, MAX_SKILL_LENGTH);
@@ -69,11 +73,11 @@ export function SkillInput({ value, onChange, errors = [] }: Props) {
   return (
     <div className="flex flex-col gap-1.5">
       <label htmlFor="field-skills" className="text-sm font-medium text-slate-700">
-        スキル
+        {label}
       </label>
 
       {value.length > 0 && (
-        <ul className="flex flex-wrap gap-2" aria-label="登録するスキル">
+        <ul className="flex flex-wrap gap-2" aria-label={`選択中の${label}`}>
           {value.map((skill) => (
             <li key={skill}>
               <SkillTag>
@@ -101,7 +105,7 @@ export function SkillInput({ value, onChange, errors = [] }: Props) {
           onKeyDown={handleKeyDown}
           disabled={isFull}
           maxLength={MAX_SKILL_LENGTH}
-          placeholder={isFull ? `${MAX_SKILLS}個まで登録できます` : "例: Ruby、React、Figma"}
+          placeholder={isFull ? `${max}個まで指定できます` : "例: Ruby、React、Figma"}
           aria-invalid={errors.length > 0}
           aria-describedby={describedBy}
           className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-white px-3 py-2 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 aria-invalid:border-rose-500 disabled:bg-slate-100"
@@ -129,7 +133,7 @@ export function SkillInput({ value, onChange, errors = [] }: Props) {
         </ul>
       ) : (
         <p id="field-skills-hint" className="text-xs text-slate-500">
-          候補から選ぶか、入力して Enter（または「追加」）で登録できます。{MAX_SKILLS}個まで。
+          {hint ?? `候補から選ぶか、入力して Enter（または「追加」）で登録できます。${max}個まで。`}
         </p>
       )}
     </div>
