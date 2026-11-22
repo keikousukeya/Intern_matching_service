@@ -52,3 +52,8 @@ export function isSafeUrl(value: string | null): value is string {
     return false;
   }
 }
+
+/** JST での今日の日付（"2026-11-22"）。日付入力の min などに使う */
+export function todayInJst(now: Date = new Date()): string {
+  return DAY_KEY_FORMAT.format(now);
+}

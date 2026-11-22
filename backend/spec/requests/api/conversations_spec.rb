@@ -193,4 +193,46 @@ RSpec.describe "Api::Conversations", type: :request do
       expect(response).to have_http_status(:not_found)
     end
   end
+
+  describe "募集に紐づけたスカウト（F-03）" do
+    let(:posting) { create(:job_posting, company: company, title: "Rails インターン") }
+    let(:params) { { conversation: { student_id: student.id, body: "この募集にご興味はありますか？", job_posting_id: posting.id } } }
+
+    it "自社の公開中の募集を紐づけて送ると、メッセージに募集の要約が入る" do
+      log_in_as(company)
+      json_post "/api/conversations", params
+
+      expect(response).to have_http_status(:created)
+      expect(response.parsed_body["message"]["job_posting"]).to include("id" => posting.id, "title" => "Rails インターン")
+
+      log_in_as(student)
+      get "/api/conversations/#{Conversation.last.id}"
+      expect(response.parsed_body["messages"].last["job_posting"]).to include("id" => posting.id)
+
+      get "/api/conversations"
+      expect(response.parsed_body["conversations"].first["last_message"]["job_posting"]).to include("id" => posting.id)
+    end
+
+    it "他社・非公開・締切済み・存在しない募集は紐づけられず 422 で、会話も作られない" do
+      log_in_as(company)
+      [ create(:job_posting), create(:job_posting, :draft, company: company),
+        create(:job_posting, :closed, company: company) ].each do |unavailable|
+        expect { json_post "/api/conversations", { conversation: params[:conversation].merge(job_posting_id: unavailable.id) } }
+          .not_to change(Conversation, :count)
+        expect(response).to have_http_status(:unprocessable_content)
+        expect(response.parsed_body["errors"]["job_posting"]).to eq([ "紐づける募集は自社の公開中で締切前の募集を選んでください" ])
+      end
+
+      json_post "/api/conversations", { conversation: params[:conversation].merge(job_posting_id: 0) }
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+
+    it "job_posting_id が空なら紐づけなしで送れる" do
+      log_in_as(company)
+      json_post "/api/conversations", { conversation: params[:conversation].merge(job_posting_id: "") }
+
+      expect(response).to have_http_status(:created)
+      expect(response.parsed_body["message"]["job_posting"]).to be_nil
+    end
+  end
 end

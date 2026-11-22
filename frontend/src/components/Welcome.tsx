@@ -36,9 +36,18 @@ export function Welcome() {
             : "まずは企業プロフィールを登録しましょう。")}
       </p>
       <div className="flex flex-col gap-3 sm:flex-row">
-        {user.role === "company" && (
-          <Link href="/students" className={user.has_profile ? PRIMARY_LINK : SECONDARY_LINK}>
-            インターン生を探す
+        {user.role === "company" ? (
+          <>
+            <Link href="/students" className={user.has_profile ? PRIMARY_LINK : SECONDARY_LINK}>
+              インターン生を探す
+            </Link>
+            <Link href="/mypage/job_postings" className={SECONDARY_LINK}>
+              募集を管理する
+            </Link>
+          </>
+        ) : (
+          <Link href="/job_postings" className={user.has_profile ? PRIMARY_LINK : SECONDARY_LINK}>
+            募集を探す
           </Link>
         )}
         <Link href="/messages" className={user.role === "student" && user.has_profile ? PRIMARY_LINK : SECONDARY_LINK}>

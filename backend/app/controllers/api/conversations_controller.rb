@@ -36,7 +36,8 @@ module Api
     # GET /api/conversations/:id  会話とメッセージ（古い順）。既読にはしない（PUT /read で行う）
     def show
       conversation = find_conversation
-      latest = conversation.messages.order(created_at: :desc, id: :desc).limit(MESSAGES_LIMIT + 1).to_a
+      latest = conversation.messages.includes(:job_posting).order(created_at: :desc, id: :desc)
+                           .limit(MESSAGES_LIMIT + 1).to_a
       has_older = latest.size > MESSAGES_LIMIT
 
       render json: {
@@ -48,13 +49,15 @@ module Api
 
     # POST /api/conversations  企業がインターン生にメッセージを送る。
     # 同じインターン生との会話が既にあれば、その会話にメッセージを追加する（企業×インターン生で 1 スレッド）。
+    # job_posting_id を指定すると、自社の公開中の募集を紐づけたスカウトになる（任意）。
     def create
       student = StudentProfile.find_by!(user_id: conversation_params[:student_id]).user
       message = nil
 
       ActiveRecord::Base.transaction do
         conversation = Conversation.find_or_start!(company: current_user, student: student)
-        message = conversation.messages.build(sender: current_user, body: conversation_params[:body])
+        message = conversation.messages.build(sender: current_user, body: conversation_params[:body],
+                                              job_posting_id: conversation_params[:job_posting_id].presence)
         # 本文が不正なら、作ったばかりの会話も残さない
         raise ActiveRecord::Rollback unless message.save
       end
@@ -85,7 +88,7 @@ module Api
     end
 
     def conversation_params
-      params.expect(conversation: %i[student_id body])
+      params.expect(conversation: %i[student_id body job_posting_id])
     end
 
     # 送信者としてインターン生に企業名を表示するため、企業プロフィールの登録を必須にする

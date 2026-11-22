@@ -11,11 +11,13 @@ const MESSAGES_HREF = "/messages";
 /** ロールごとのメニュー */
 const NAV_LINKS: Record<Role, { href: string; label: string }[]> = {
   student: [
+    { href: "/job_postings", label: "募集を探す" },
     { href: MESSAGES_HREF, label: "メッセージ" },
     { href: "/mypage/profile", label: "プロフィール" },
   ],
   company: [
     { href: "/students", label: "インターン生を探す" },
+    { href: "/mypage/job_postings", label: "募集管理" },
     { href: MESSAGES_HREF, label: "メッセージ" },
     { href: "/mypage/profile", label: "企業プロフィール" },
   ],
