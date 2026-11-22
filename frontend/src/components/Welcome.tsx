@@ -50,6 +50,9 @@ export function Welcome() {
             募集を探す
           </Link>
         )}
+        <Link href="/articles" className={SECONDARY_LINK}>
+          技術ブログを読む
+        </Link>
         <Link href="/messages" className={user.role === "student" && user.has_profile ? PRIMARY_LINK : SECONDARY_LINK}>
           {user.role === "student" ? "届いたメッセージを見る" : "メッセージ一覧"}
         </Link>

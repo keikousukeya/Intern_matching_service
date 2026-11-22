@@ -16,6 +16,9 @@ class User < ApplicationRecord
   # 企業が掲載した募集（F-03）
   has_many :job_postings, foreign_key: :company_id, inverse_of: :company, dependent: :destroy
 
+  # 技術ブログの記事（インターン生・企業のどちらも書ける）
+  has_many :articles, foreign_key: :author_id, inverse_of: :author, dependent: :destroy
+
   # 前後の空白を除き小文字にそろえる（大文字小文字違いの重複登録を防ぐ）
   normalizes :email, with: ->(email) { email.strip.downcase }
 
