@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import type { SkillMatch, StudentSearchParams } from "@/lib/students";
 import { FormField, SelectField } from "./FormField";
 import { SkillInput } from "./SkillInput";
+import { SkillMatchField } from "./SkillMatchField";
 
 const MAX_SEARCH_SKILLS = 10;
 
@@ -65,28 +66,12 @@ export function StudentSearchForm({ initial, onSearch, onClear }: Props) {
           max={MAX_SEARCH_SKILLS}
           hint={`候補から選ぶか、入力して Enter（または「追加」）で指定できます。${MAX_SEARCH_SKILLS}個まで。`}
         />
-        <fieldset className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm" disabled={skills.length < 2}>
-          <legend className="sr-only">複数のスキルの組み合わせ方</legend>
-          {(
-            [
-              ["all", "すべてのスキルを持つ人"],
-              ["any", "いずれかのスキルを持つ人"],
-            ] as const
-          ).map(([value, label]) => (
-            <label key={value} className="flex items-center gap-2 text-slate-700 has-disabled:text-slate-400">
-              <input
-                type="radio"
-                name="skill_match"
-                value={value}
-                checked={skillMatch === value}
-                onChange={() => setSkillMatch(value)}
-                className="accent-indigo-600"
-              />
-              {label}
-            </label>
-          ))}
-          {skills.length < 2 && <span className="text-xs text-slate-400">（スキルを 2 つ以上指定すると選べます）</span>}
-        </fieldset>
+        <SkillMatchField
+          value={skillMatch}
+          onChange={setSkillMatch}
+          skillCount={skills.length}
+          labels={{ all: "すべてのスキルを持つ人", any: "いずれかのスキルを持つ人" }}
+        />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-3">

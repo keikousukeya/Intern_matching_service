@@ -4,6 +4,7 @@ class Skill < ApplicationRecord
 
   has_many :student_skills, dependent: :destroy
   has_many :student_profiles, through: :student_skills
+  has_many :job_posting_skills, dependent: :destroy
 
   # 連続する空白を 1 つにまとめ、前後の空白を除く
   normalizes :name, with: ->(name) { name.squish }

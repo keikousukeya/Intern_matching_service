@@ -8,6 +8,8 @@ ja:
       conversation: 会話
       conversation_participant: 会話の参加者
       message: メッセージ
+      job_posting: 募集
+      job_posting_skill: 募集の必要スキル
     attributes:
       user:
         email: メールアドレス
@@ -43,6 +45,19 @@ ja:
       message:
         body: 本文
         sender: 送信者
+        job_posting: 紐づける募集
+      job_posting:
+        company: 企業
+        title: タイトル
+        description: 業務内容
+        starts_on: 期間（開始）
+        ends_on: 期間（終了）
+        work_style: 勤務形態
+        compensation: 報酬
+        headcount: 募集人数
+        deadline: 締切
+        status: 公開状態
+        skill_names: 必要スキル
     errors:
       models:
         student_profile:
@@ -70,6 +85,20 @@ ja:
           attributes:
             sender:
               must_be_participant: はこの会話の参加者である必要があります
+            job_posting:
+              not_available: は自社の公開中で締切前の募集を選んでください
+        job_posting:
+          attributes:
+            company:
+              must_be_company: は企業アカウントである必要があります
+              profile_required: プロフィールを登録してから募集を作成してください
+            ends_on:
+              after_starts_on: は開始日以降の日付にしてください
+            deadline:
+              not_past: には今日以降の日付を指定してください
+            skill_names:
+              too_many: は%{count}個まで登録できます
+              name_too_long: は1つあたり%{count}文字以内で入力してください
   errors:
     messages:
       invalid_url: は http:// または https:// から始まる URL を入力してください

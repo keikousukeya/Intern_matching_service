@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api";
 import type { User } from "@/lib/auth";
 import { formatPeriod, isSafeUrl } from "@/lib/format";
 import { useMessageActions } from "@/lib/messages";
 import { useStudent } from "@/lib/students";
 import { FormAlert } from "./FormAlert";
+import { JobPostingPicker } from "./JobPostingPicker";
 import { Loading } from "./Loading";
 import { MessageComposer } from "./MessageComposer";
 import { RequireUser } from "./RequireUser";
@@ -123,9 +124,10 @@ function ScoutSection({
 }) {
   const router = useRouter();
   const { startConversation } = useMessageActions();
+  const [jobPostingId, setJobPostingId] = useState<number | null>(null);
 
   async function handleSend(body: string) {
-    const id = await startConversation(studentId, body);
+    const id = await startConversation(studentId, body, jobPostingId);
     await onStarted(id);
     router.push(`/messages/${id}`);
   }
@@ -148,7 +150,11 @@ function ScoutSection({
           <p className="text-sm text-slate-600">
             プロフィールのどこに魅力を感じたか、インターンで任せたい業務などを伝えると返信につながりやすくなります。
           </p>
-          <MessageComposer onSend={handleSend} placeholder={`${studentName}さんへのメッセージ`} />
+          <MessageComposer
+            onSend={handleSend}
+            placeholder={`${studentName}さんへのメッセージ`}
+            accessory={<JobPostingPicker value={jobPostingId} onChange={setJobPostingId} />}
+          />
         </>
       ) : (
         <p className="text-sm text-slate-600">

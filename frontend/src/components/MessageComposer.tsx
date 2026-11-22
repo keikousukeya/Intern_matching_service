@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useState, type FormEvent, type KeyboardEvent, type ReactNode } from "react";
 import { ApiError } from "@/lib/api";
 import { FormAlert } from "./FormAlert";
 
@@ -11,10 +11,17 @@ type Props = {
   onSend: (body: string) => Promise<unknown>;
   placeholder?: string;
   submitLabel?: string;
+  /** 本文の下に置く追加の入力（例: スカウトに紐づける募集の選択） */
+  accessory?: ReactNode;
 };
 
 /** メッセージの入力欄と送信ボタン。Ctrl（Mac は ⌘）+ Enter でも送信できる */
-export function MessageComposer({ onSend, placeholder = "メッセージを入力", submitLabel = "送信する" }: Props) {
+export function MessageComposer({
+  onSend,
+  placeholder = "メッセージを入力",
+  submitLabel = "送信する",
+  accessory,
+}: Props) {
   const [body, setBody] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
@@ -69,6 +76,7 @@ export function MessageComposer({ onSend, placeholder = "メッセージを入�
         rows={3}
         className="w-full resize-y rounded-lg border border-slate-300 bg-white px-3 py-2 text-base outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200"
       />
+      {accessory}
       <div className="flex items-center justify-between gap-3">
         <span className="text-xs text-slate-500">
           {body.length} / {BODY_MAX_LENGTH}文字

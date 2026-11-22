@@ -3,6 +3,7 @@
 import useSWR, { useSWRConfig } from "swr";
 import { apiFetch, fetcher } from "./api";
 import type { User } from "./auth";
+import type { JobPostingSummary } from "./jobPostings";
 import type { PageMeta } from "./students";
 
 export type Message = {
@@ -11,6 +12,8 @@ export type Message = {
   sender_id: number;
   body: string;
   created_at: string;
+  /** 募集に紐づけたスカウトのときだけ入る */
+  job_posting: JobPostingSummary | null;
 };
 
 /** 会話（企業×インターン生で 1 件）。メールアドレスは含まない */
@@ -87,21 +90,21 @@ export function useMessageActions() {
   }
 
   return {
-    /** 企業: インターン生にメッセージを送る（会話が無ければ作られる）。会話の ID を返す */
-    async startConversation(studentId: number, body: string) {
+    /** 企業: インターン生にメッセージを送る（会話が無ければ作られる）。jobPostingId で自社の募集を紐づけられる。会話の ID を返す */
+    async startConversation(studentId: number, body: string, jobPostingId: number | null = null) {
       const result = await apiFetch<{ conversation: Conversation; message: Message }>("/conversations", {
         method: "POST",
-        body: { conversation: { student_id: studentId, body } },
+        body: { conversation: { student_id: studentId, body, job_posting_id: jobPostingId } },
       });
       await refreshSummaries();
       return result.conversation.id;
     },
 
-    /** 既存の会話に送る（インターン生の返信もこれ） */
-    async sendMessage(conversationId: number, body: string) {
+    /** 既存の会話に送る（インターン生の返信もこれ）。企業は jobPostingId で自社の募集を紐づけられる */
+    async sendMessage(conversationId: number, body: string, jobPostingId: number | null = null) {
       const result = await apiFetch<{ message: Message }>(`${conversationKey(conversationId)}/messages`, {
         method: "POST",
-        body: { message: { body } },
+        body: { message: { body, job_posting_id: jobPostingId } },
       });
       await Promise.all([mutate(conversationKey(conversationId)), refreshSummaries()]);
       return result.message;

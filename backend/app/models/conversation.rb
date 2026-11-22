@@ -36,7 +36,7 @@ class Conversation < ApplicationRecord
   # 会話ごとの最新メッセージ { conversation_id => Message }（1 回の SQL で取得）
   def self.last_messages_for(conversation_ids)
     latest_ids = Message.where(conversation_id: conversation_ids).group(:conversation_id).select("MAX(messages.id)")
-    Message.where(id: latest_ids).index_by(&:conversation_id)
+    Message.where(id: latest_ids).includes(:job_posting).index_by(&:conversation_id)
   end
 
   def participant?(user)

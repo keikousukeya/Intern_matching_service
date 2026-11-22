@@ -13,6 +13,9 @@ class User < ApplicationRecord
   has_many :conversation_participants, dependent: :destroy
   has_many :conversations, through: :conversation_participants
 
+  # 企業が掲載した募集（F-03）
+  has_many :job_postings, foreign_key: :company_id, inverse_of: :company, dependent: :destroy
+
   # 前後の空白を除き小文字にそろえる（大文字小文字違いの重複登録を防ぐ）
   normalizes :email, with: ->(email) { email.strip.downcase }
 

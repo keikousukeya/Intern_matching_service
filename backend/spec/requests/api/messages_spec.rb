@@ -46,4 +46,23 @@ RSpec.describe "Api::Messages", type: :request do
       expect(response).to have_http_status(:unauthorized)
     end
   end
+
+  describe "募集の紐づけ（F-03）" do
+    let(:posting) { create(:job_posting, company: conversation.company) }
+
+    it "企業は既存の会話でも自社の募集を紐づけて送れる" do
+      log_in_as(conversation.company)
+      json_post path, { message: { body: "こちらの募集もご覧ください", job_posting_id: posting.id } }
+
+      expect(response).to have_http_status(:created)
+      expect(response.parsed_body["message"]["job_posting"]).to include("id" => posting.id)
+    end
+
+    it "インターン生は募集を紐づけられない（422）" do
+      log_in_as(conversation.student)
+      json_post path, { message: { body: "返信です", job_posting_id: posting.id } }
+
+      expect(response).to have_http_status(:unprocessable_content)
+    end
+  end
 end

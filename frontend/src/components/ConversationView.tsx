@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/api";
 import type { User } from "@/lib/auth";
 import { formatDateTime } from "@/lib/format";
 import { partnerOf, useConversation, useMessageActions, type Message } from "@/lib/messages";
 import { FormAlert } from "./FormAlert";
+import { JobPostingPicker } from "./JobPostingPicker";
+import { JobPostingAttachment } from "./JobPostingParts";
 import { Loading } from "./Loading";
 import { MessageComposer } from "./MessageComposer";
 import { RequireUser } from "./RequireUser";
@@ -20,6 +22,8 @@ function View({ id, user }: { id: string; user: User }) {
   const { data, error, isLoading } = useConversation(id);
   const { sendMessage, markAsRead } = useMessageActions();
   const scrollRef = useRef<HTMLDivElement>(null);
+  // 企業: 次に送るメッセージに紐づける募集（送信したら解除する）
+  const [jobPostingId, setJobPostingId] = useState<number | null>(null);
   const lastMarkedId = useRef<number | null>(null);
 
   const messages = data?.messages ?? [];
@@ -87,9 +91,15 @@ function View({ id, user }: { id: string; user: User }) {
 
         <div className="border-t border-slate-100 px-4 py-4 sm:px-6">
           <MessageComposer
-            onSend={(body) => sendMessage(data.conversation.id, body)}
+            onSend={async (body) => {
+              await sendMessage(data.conversation.id, body, jobPostingId);
+              setJobPostingId(null);
+            }}
             placeholder={user.role === "student" ? "返信を入力" : "メッセージを入力"}
             submitLabel={user.role === "student" ? "返信する" : "送信する"}
+            accessory={
+              user.role === "company" && <JobPostingPicker value={jobPostingId} onChange={setJobPostingId} />
+            }
           />
         </div>
       </section>
@@ -108,6 +118,11 @@ function MessageBubble({ message, mine }: { message: Message; mine: boolean }) {
       >
         {message.body}
       </p>
+      {message.job_posting && (
+        <div className="w-full max-w-[85%] sm:max-w-[75%]">
+          <JobPostingAttachment posting={message.job_posting} />
+        </div>
+      )}
       <time dateTime={message.created_at} className="text-xs text-slate-500">
         {mine && "あなた・"}
         {formatDateTime(message.created_at)}

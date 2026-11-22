@@ -62,6 +62,39 @@ BIO_TEMPLATES = [
   "研究室で%{skills}を使ったデータ処理に取り組んでいます。研究で身につけた知識を実務に生かせる場を探しています。"
 ].freeze
 
+# 募集（F-03）: [企業番号, 属性]。締切・期間はシード実行日からの相対日数（何日後か）で指定する
+JOB_POSTINGS = [
+  [ 1, { title: "Rails × React で業務管理 SaaS を開発する長期インターン", work_style: :hybrid,
+         description: "中小企業向け業務管理 SaaS の新機能開発を担当していただきます。\n\n" \
+                      "・Rails での API 開発\n・React での画面実装\n・コードレビューを通じたチーム開発\n\n" \
+                      "週 3 日以上、3 か月以上参加できる方を歓迎します。",
+         compensation: "時給 1,500 円（経験に応じて昇給）", headcount: 2, starts_in: 30, months: 6, deadline_in: 45,
+         skills: %w[Ruby Rails React Git] } ],
+  [ 1, { title: "フロントエンド（Next.js）開発インターン", work_style: :remote,
+         description: "管理画面のリニューアルに伴い、Next.js と TypeScript でのフロントエンド開発をお任せします。フルリモートで参加できます。",
+         compensation: "時給 1,400 円", headcount: 1, starts_in: 14, months: 3, deadline_in: 20,
+         skills: %w[TypeScript React Next.js] } ],
+  [ 1, { title: "【準備中】インフラ改善インターン", work_style: :onsite, status: :draft,
+         description: "AWS 上のインフラの監視・自動化に取り組んでいただく予定です（募集内容を準備中）。",
+         compensation: nil, headcount: nil, starts_in: nil, months: nil, deadline_in: nil, skills: %w[AWS Docker] } ],
+  [ 2, { title: "画像認識モデルの開発・検証インターン", work_style: :hybrid,
+         description: "製造業向け検品システムで使う画像認識モデルの学習・評価を担当していただきます。研究で機械学習に取り組んでいる方を歓迎します。",
+         compensation: "時給 1,800 円", headcount: 2, starts_in: 30, months: 6, deadline_in: 60,
+         skills: %w[Python 機械学習 データ分析] } ],
+  [ 3, { title: "UI/UX デザイナーインターン（Figma）", work_style: :onsite,
+         description: "受託案件の Web サービスについて、ワイヤーフレーム作成から UI デザインまでをデザイナーと一緒に進めていただきます。",
+         compensation: "日給 10,000 円", headcount: 1, starts_in: 21, months: 3, deadline_in: 10,
+         skills: %w[Figma UI/UX デザイン] } ],
+  [ 4, { title: "Kubernetes を使ったクラウド基盤の構築インターン", work_style: :remote,
+         description: "物流向けクラウド基盤の構築・運用を、SRE チームと一緒に経験していただきます。Linux の基本操作ができる方を歓迎します。",
+         compensation: "月 12 万円（週 4 日）", headcount: 1, starts_in: 45, months: 6, deadline_in: nil,
+         skills: %w[AWS Kubernetes Docker Linux] } ],
+  [ 5, { title: "学習アプリ（iOS / Android）開発インターン", work_style: :remote,
+         description: "Swift・Kotlin を使った学習アプリの機能開発を担当していただきます。週 2 日から、リモートで参加できます。",
+         compensation: "時給 1,300 円", headcount: 3, starts_in: 14, months: 4, deadline_in: 30,
+         skills: %w[Swift Kotlin Git] } ]
+].freeze
+
 def upsert_user!(email, role)
   User.find_or_initialize_by(email: email).tap do |user|
     user.update!(password: PASSWORD, role: role)
@@ -104,8 +137,28 @@ ActiveRecord::Base.transaction do
     )
   end
 
+  # 募集: 企業とタイトルで探し、あれば内容を更新する
+  today = Time.zone.today
+  JOB_POSTINGS.each do |company_number, attributes|
+    company = User.find_by!(email: "company#{company_number}@example.com")
+    posting = company.job_postings.find_or_initialize_by(title: attributes[:title])
+    starts_on = attributes[:starts_in] && today + attributes[:starts_in]
+    posting.update!(
+      description: attributes[:description],
+      work_style: attributes[:work_style],
+      compensation: attributes[:compensation],
+      headcount: attributes[:headcount],
+      starts_on: starts_on,
+      ends_on: starts_on && (starts_on >> attributes[:months]),
+      deadline: attributes[:deadline_in] && today + attributes[:deadline_in],
+      status: attributes.fetch(:status, :published),
+      skill_names: attributes[:skills]
+    )
+  end
+  react_posting = JobPosting.find_by!(title: "フロントエンド（Next.js）開発インターン")
+
   # メッセージ: 企業 1・2 から学生 1〜3 へのスカウト（返信あり・未読あり・既読のみ が混ざるようにする）
-  # [企業番号, 学生番号, [[送信者, 何時間前, 本文], ...]]
+  # [企業番号, 学生番号, [[送信者, 何時間前, 本文, 紐づける募集（任意）], ...]]
   conversations = [
     [ 1, 1, [
       [ :company, 50, "はじめまして。プロフィールを拝見し、Web アプリの個人開発の経験に惹かれてご連絡しました。弊社の長期インターンについて、一度オンラインでお話ししませんか？" ],
@@ -120,7 +173,7 @@ ActiveRecord::Base.transaction do
       [ :student, 48, "ありがとうございます。業務内容について詳しく教えていただけますか？" ]
     ] ],
     [ 1, 3, [
-      [ :company, 10, "React を使ったフロントエンド開発のインターンを募集しています。ご興味はありますか？" ]
+      [ :company, 10, "React を使ったフロントエンド開発のインターンを募集しています。ご興味はありますか？", react_posting ]
     ] ]
   ]
 
@@ -131,12 +184,12 @@ ActiveRecord::Base.transaction do
     # 2 回目以降の実行でメッセージが増えないよう、空の会話にだけ投入する
     next if conversation.messages.exists?
 
-    messages.each do |sender, hours_ago, body|
+    messages.each do |sender, hours_ago, body, job_posting|
       conversation.messages.create!(sender: sender == :company ? company : student, body: body,
-                                    created_at: hours_ago.hours.ago)
+                                    job_posting: job_posting, created_at: hours_ago.hours.ago)
     end
   end
 end
 
-puts "シードデータを投入しました: 企業 #{CompanyProfile.count} 件 / インターン生 #{StudentProfile.count} 件 / スキル #{Skill.count} 件 / 会話 #{Conversation.count} 件"
+puts "シードデータを投入しました: 企業 #{CompanyProfile.count} 件 / インターン生 #{StudentProfile.count} 件 / スキル #{Skill.count} 件 / 募集 #{JobPosting.count} 件 / 会話 #{Conversation.count} 件"
 puts "ログイン例: student1@example.com / company1@example.com（パスワードは #{PASSWORD}）"

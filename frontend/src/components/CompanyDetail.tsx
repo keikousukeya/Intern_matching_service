@@ -5,7 +5,9 @@ import type { ReactNode } from "react";
 import { ApiError } from "@/lib/api";
 import { useCompany } from "@/lib/companies";
 import { isSafeUrl } from "@/lib/format";
+import { useCompanyJobPostings } from "@/lib/jobPostings";
 import { FormAlert } from "./FormAlert";
+import { JobPostingCard } from "./JobPostingCard";
 import { Loading } from "./Loading";
 import { RequireUser } from "./RequireUser";
 
@@ -56,10 +58,46 @@ function Detail({ id }: { id: string }) {
         </Item>
       </dl>
 
-      <Link href="/messages" className="self-start text-sm text-indigo-600 hover:underline">
-        ← メッセージ一覧へ戻る
-      </Link>
+      <CompanyJobPostings companyId={id} />
+
+      <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+        <Link href="/messages" className="text-indigo-600 hover:underline">
+          ← メッセージ一覧へ戻る
+        </Link>
+        <Link href="/job_postings" className="text-indigo-600 hover:underline">
+          ← 募集一覧へ戻る
+        </Link>
+      </div>
     </article>
+  );
+}
+
+/** この企業の公開中で締切前の募集（インターン生が「どんな業務を経験できるか」を確認できるようにする） */
+function CompanyJobPostings({ companyId }: { companyId: string }) {
+  const { data, error } = useCompanyJobPostings(companyId);
+
+  return (
+    <section className="flex flex-col gap-3 border-t border-slate-100 pt-5">
+      <h2 className="font-bold">
+        募集中のインターン
+        {data && <span className="ml-2 text-sm font-normal text-slate-500">{data.meta.total_count}件</span>}
+      </h2>
+      {error ? (
+        <FormAlert message="募集を読み込めませんでした。" />
+      ) : !data ? (
+        <Loading />
+      ) : data.job_postings.length === 0 ? (
+        <p className="text-sm text-slate-500">現在、公開中の募集はありません。</p>
+      ) : (
+        <ul className="grid gap-4 md:grid-cols-2">
+          {data.job_postings.map((posting) => (
+            <li key={posting.id}>
+              <JobPostingCard posting={posting} showCompany={false} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

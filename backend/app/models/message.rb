@@ -4,12 +4,15 @@ class Message < ApplicationRecord
 
   belongs_to :conversation
   belongs_to :sender, class_name: "User"
+  # 募集に紐づけたスカウト（任意）
+  belongs_to :job_posting, optional: true
 
   # 前後の空白・改行だけを除く（本文中の改行はそのまま残す）
   normalizes :body, with: ->(body) { body.strip }
 
   validates :body, presence: true, length: { maximum: BODY_MAX_LENGTH }
   validate :sender_must_be_participant
+  validate :job_posting_must_be_senders_published
 
   # 古い順（同時刻は ID 順）
   scope :chronological, -> { order(:created_at, :id) }
@@ -32,6 +35,18 @@ class Message < ApplicationRecord
     return if conversation.nil? || sender.nil?
 
     errors.add(:sender, :must_be_participant) unless conversation.participant?(sender)
+  end
+
+  # 紐づけられるのは、送信者（企業）自身の公開中で締切前の募集だけ（インターン生や他社の募集は不可）。
+  # 新しく紐づけるときだけ確認する（後で募集を非公開にしても、過去のメッセージは無効にしない）
+  def job_posting_must_be_senders_published
+    # 存在しない ID が指定された場合（job_posting は nil になる）もエラーにする
+    return if job_posting_id.nil? || !will_save_change_to_job_posting_id?
+
+    posting = job_posting
+    return if posting && posting.company_id == sender_id && posting.published? && !posting.closed?
+
+    errors.add(:job_posting, :not_available)
   end
 
   def touch_conversation
