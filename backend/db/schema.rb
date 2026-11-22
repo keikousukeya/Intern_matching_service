@@ -10,9 +10,30 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_22_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_22_120000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "article_skills", force: :cascade do |t|
+    t.bigint "article_id", null: false
+    t.bigint "skill_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["article_id", "skill_id"], name: "index_article_skills_on_article_id_and_skill_id", unique: true
+    t.index ["skill_id"], name: "index_article_skills_on_skill_id"
+  end
+
+  create_table "articles", force: :cascade do |t|
+    t.bigint "author_id", null: false
+    t.string "title", null: false
+    t.text "body", null: false
+    t.integer "status", default: 0, null: false
+    t.datetime "published_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["author_id"], name: "index_articles_on_author_id"
+    t.index ["status", "published_at"], name: "index_articles_on_status_and_published_at"
+  end
 
   create_table "company_profiles", force: :cascade do |t|
     t.bigint "user_id", null: false
@@ -130,6 +151,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_22_100000) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  add_foreign_key "article_skills", "articles"
+  add_foreign_key "article_skills", "skills"
+  add_foreign_key "articles", "users", column: "author_id"
   add_foreign_key "company_profiles", "users"
   add_foreign_key "conversation_participants", "conversations"
   add_foreign_key "conversation_participants", "users"

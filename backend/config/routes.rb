@@ -22,6 +22,11 @@ Rails.application.routes.draw do
     # GET /api/me/job_postings  自社の募集（非公開・締切済みも含む）
     resources :my_job_postings, path: "me/job_postings", only: :index
 
+    # 技術ブログ。一覧・詳細はログインユーザー全員、作成・更新・削除は書いた本人だけが行える
+    resources :articles, only: %i[index show create update destroy]
+    # GET /api/me/articles  自分の記事（下書きも含む）
+    resources :my_articles, path: "me/articles", only: :index
+
     # メッセージ（F-02）。会話は企業×インターン生で 1 件
     resources :conversations, only: %i[index show create] do
       get :unread_count, on: :collection # GET /api/conversations/unread_count  未読の合計

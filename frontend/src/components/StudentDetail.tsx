@@ -8,6 +8,7 @@ import type { User } from "@/lib/auth";
 import { formatPeriod, isSafeUrl } from "@/lib/format";
 import { useMessageActions } from "@/lib/messages";
 import { useStudent } from "@/lib/students";
+import { AuthorArticles } from "./AuthorArticles";
 import { FormAlert } from "./FormAlert";
 import { JobPostingPicker } from "./JobPostingPicker";
 import { Loading } from "./Loading";
@@ -88,6 +89,9 @@ function Detail({ id, user }: { id: string; user: User }) {
           )}
         </Item>
       </dl>
+
+      {/* 書いた記事から、プロフィールだけでは分かりにくい技術力や関心を確認できる */}
+      <AuthorArticles authorId={student.user_id} viewer={user} />
 
       <ScoutSection
         studentId={student.user_id}

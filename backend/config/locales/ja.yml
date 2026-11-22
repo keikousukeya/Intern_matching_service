@@ -10,6 +10,8 @@ ja:
       message: メッセージ
       job_posting: 募集
       job_posting_skill: 募集の必要スキル
+      article: 記事
+      article_skill: 記事のタグ
     attributes:
       user:
         email: メールアドレス
@@ -58,6 +60,12 @@ ja:
         deadline: 締切
         status: 公開状態
         skill_names: 必要スキル
+      article:
+        author: 書いた人
+        title: タイトル
+        body: 本文
+        status: 公開状態
+        skill_names: タグ
     errors:
       models:
         student_profile:
@@ -96,6 +104,12 @@ ja:
               after_starts_on: は開始日以降の日付にしてください
             deadline:
               not_past: には今日以降の日付を指定してください
+            skill_names:
+              too_many: は%{count}個まで登録できます
+              name_too_long: は1つあたり%{count}文字以内で入力してください
+        article:
+          author_profile_required: プロフィールを登録してから記事を書いてください
+          attributes:
             skill_names:
               too_many: は%{count}個まで登録できます
               name_too_long: は1つあたり%{count}文字以内で入力してください

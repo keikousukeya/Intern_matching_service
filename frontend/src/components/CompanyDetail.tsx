@@ -3,9 +3,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { ApiError } from "@/lib/api";
+import type { User } from "@/lib/auth";
 import { useCompany } from "@/lib/companies";
 import { isSafeUrl } from "@/lib/format";
 import { useCompanyJobPostings } from "@/lib/jobPostings";
+import { AuthorArticles } from "./AuthorArticles";
 import { FormAlert } from "./FormAlert";
 import { JobPostingCard } from "./JobPostingCard";
 import { Loading } from "./Loading";
@@ -13,10 +15,10 @@ import { RequireUser } from "./RequireUser";
 
 /** 企業プロフィールの詳細。スカウトを受け取ったインターン生が送信元の企業を確認するための画面 */
 export function CompanyDetail({ id }: { id: string }) {
-  return <RequireUser>{() => <Detail id={id} />}</RequireUser>;
+  return <RequireUser>{(user) => <Detail id={id} user={user} />}</RequireUser>;
 }
 
-function Detail({ id }: { id: string }) {
+function Detail({ id, user }: { id: string; user: User }) {
   const { data, error, isLoading } = useCompany(id);
 
   if (isLoading) return <Loading />;
@@ -59,6 +61,8 @@ function Detail({ id }: { id: string }) {
       </dl>
 
       <CompanyJobPostings companyId={id} />
+
+      <AuthorArticles authorId={id} viewer={user} />
 
       <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
         <Link href="/messages" className="text-indigo-600 hover:underline">

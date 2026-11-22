@@ -95,6 +95,116 @@ JOB_POSTINGS = [
          skills: %w[Swift Kotlin Git] } ]
 ].freeze
 
+# 技術ブログの記事: [書いた人のメールアドレス, 何日前に公開, 属性]（status: :draft は下書き）
+ARTICLES = [
+  [ "student1@example.com", 6, {
+    title: "個人開発で Rails API と Next.js を分けて作ってみた",
+    skills: %w[Rails Next.js TypeScript],
+    body: <<~MARKDOWN
+      ## なぜ分けたのか
+
+      フロントエンドとバックエンドの役割をはっきりさせたかったためです。
+
+      - Rails は JSON を返すことに集中する
+      - Next.js は画面と操作に集中する
+
+      ## ハマったところ
+
+      Cookie を使った認証で CORS の設定に悩みました。最終的に Next.js の `rewrites` で同一オリジンにまとめました。
+
+      ```js
+      // next.config.ts
+      async rewrites() {
+        return [{ source: "/api/:path*", destination: "http://backend:3000/api/:path*" }];
+      }
+      ```
+
+      | 方式 | 良い点 | 気になる点 |
+      | --- | --- | --- |
+      | JWT | 構成がシンプル | 保存場所に注意が必要 |
+      | セッション Cookie | HttpOnly にできる | 同一オリジンにする工夫が必要 |
+    MARKDOWN
+  } ],
+  [ "student3@example.com", 3, {
+    title: "React の useEffect を減らしたら見通しが良くなった話",
+    skills: %w[React TypeScript],
+    body: <<~MARKDOWN
+      ## 結論
+
+      **「表示のために計算できる値」は state にしない**、が一番効きました。
+
+      1. props から計算できる値は、描画中にそのまま計算する
+      2. イベントで起きることは、イベントハンドラーに書く
+      3. 外部との同期だけを `useEffect` に残す
+
+      > useEffect は「外部システムと同期するため」のもの
+
+      ### チェックリスト
+
+      - [x] 派生 state を消した
+      - [x] fetch はライブラリ（SWR）に任せた
+      - [ ] テストを書く
+    MARKDOWN
+  } ],
+  [ "student5@example.com", 1, {
+    title: "pandas で大学の時間割データを分析してみた",
+    skills: %w[Python データ分析],
+    body: <<~MARKDOWN
+      ゼミの課題で、学部の時間割データを集計しました。
+
+      ```python
+      import pandas as pd
+
+      df = pd.read_csv("timetable.csv")
+      print(df.groupby("weekday")["credits"].sum())
+      ```
+
+      水曜日に必修が集中していることが分かりました。
+    MARKDOWN
+  } ],
+  [ "student1@example.com", nil, {
+    title: "（下書き）Docker Compose の開発環境メモ",
+    skills: %w[Docker],
+    status: :draft,
+    body: "まだ書きかけです。
+
+- ボリュームの使い分け
+- node_modules をどこに置くか"
+  } ],
+  [ "company1@example.com", 10, {
+    title: "当社の開発チームのコードレビューの進め方",
+    skills: %w[Git],
+    body: <<~MARKDOWN
+      ## レビューで大切にしていること
+
+      インターン生の方にもレビューに参加してもらっています。
+
+      - 指摘には **理由** を書く
+      - 「必須」と「提案」を書き分ける
+      - 小さな PR にする（目安は 300 行まで）
+
+      インターンでは、最初の 1 か月でレビューする側も経験してもらいます。
+    MARKDOWN
+  } ],
+  [ "company2@example.com", 4, {
+    title: "データ基盤を AWS に移行したときの振り返り",
+    skills: %w[AWS SQL データ分析],
+    body: <<~MARKDOWN
+      ## 背景
+
+      オンプレミスの集計バッチが夜間に終わらなくなってきたため、移行を決めました。
+
+      ## やったこと
+
+      1. 集計 SQL の棚卸し
+      2. 処理ごとの所要時間の計測
+      3. 段階的な切り替え
+
+      詳しくは [AWS のドキュメント](https://docs.aws.amazon.com/) も参考にしました。
+    MARKDOWN
+  } ]
+].freeze
+
 def upsert_user!(email, role)
   User.find_or_initialize_by(email: email).tap do |user|
     user.update!(password: PASSWORD, role: role)
@@ -157,6 +267,16 @@ ActiveRecord::Base.transaction do
   end
   react_posting = JobPosting.find_by!(title: "フロントエンド（Next.js）開発インターン")
 
+  # 技術ブログの記事: 書いた人とタイトルで探し、あれば内容を更新する
+  ARTICLES.each do |email, days_ago, attributes|
+    author = User.find_by!(email: email)
+    article = author.articles.find_or_initialize_by(title: attributes[:title])
+    article.update!(body: attributes[:body], status: attributes.fetch(:status, :published),
+                    skill_names: attributes[:skills])
+    # 新着順が分かりやすいよう、公開日時をずらす（検証は不要なため直接書き換える）
+    article.update_columns(published_at: days_ago.days.ago) if days_ago
+  end
+
   # メッセージ: 企業 1・2 から学生 1〜3 へのスカウト（返信あり・未読あり・既読のみ が混ざるようにする）
   # [企業番号, 学生番号, [[送信者, 何時間前, 本文, 紐づける募集（任意）], ...]]
   conversations = [
@@ -191,5 +311,5 @@ ActiveRecord::Base.transaction do
   end
 end
 
-puts "シードデータを投入しました: 企業 #{CompanyProfile.count} 件 / インターン生 #{StudentProfile.count} 件 / スキル #{Skill.count} 件 / 募集 #{JobPosting.count} 件 / 会話 #{Conversation.count} 件"
+puts "シードデータを投入しました: 企業 #{CompanyProfile.count} 件 / インターン生 #{StudentProfile.count} 件 / スキル #{Skill.count} 件 / 募集 #{JobPosting.count} 件 / 記事 #{Article.count} 件 / 会話 #{Conversation.count} 件"
 puts "ログイン例: student1@example.com / company1@example.com（パスワードは #{PASSWORD}）"
