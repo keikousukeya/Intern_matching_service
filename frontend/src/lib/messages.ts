@@ -10,6 +10,8 @@ export type Message = {
   id: number;
   conversation_id: number;
   sender_id: number;
+  /** 企業が送ったメッセージの担当者名（インターン生のメッセージでは null） */
+  sender_name: string | null;
   body: string;
   created_at: string;
   /** 募集に紐づけたスカウトのときだけ入る */
@@ -23,7 +25,7 @@ export type Conversation = {
   /** ログイン中のユーザーにとっての未読件数 */
   unread_count: number;
   /** プロフィール未登録の場合、名前は null になる */
-  company: { user_id: number; company_name: string | null; contact_name: string | null };
+  company: { user_id: number; company_name: string | null };
   student: { user_id: number; name: string | null; university: string | null };
   /** 一覧でのみ返る最新メッセージ（本文は 100 文字まで） */
   last_message?: Message | null;
@@ -46,18 +48,17 @@ const UNREAD_COUNT_KEY = "/conversations/unread_count";
 const conversationKey = (id: number | string) => `/conversations/${encodeURIComponent(String(id))}`;
 const isListKey = (key: unknown) => typeof key === "string" && key.startsWith("/conversations?");
 
-/** 会話の相手の表示（企業から見ればインターン生、インターン生から見れば企業）。href は相手のプロフィール */
+/**
+ * 会話の相手の表示（企業から見ればインターン生、インターン生から見れば企業）。href は相手のプロフィール。
+ * 企業の担当者名はメッセージごとに入るため、ここでは企業名だけを返す
+ */
 export function partnerOf(conversation: Conversation, viewer: User) {
   if (viewer.role === "company") {
     const { user_id, name, university } = conversation.student;
     return { name: name ?? "（プロフィール未登録のインターン生）", sub: university, href: `/students/${user_id}` };
   }
-  const { user_id, company_name, contact_name } = conversation.company;
-  return {
-    name: company_name ?? "（プロフィール未登録の企業）",
-    sub: contact_name ? `担当: ${contact_name}` : null,
-    href: `/companies/${user_id}`,
-  };
+  const { user_id, company_name } = conversation.company;
+  return { name: company_name ?? "（プロフィール未登録の企業）", sub: null, href: `/companies/${user_id}` };
 }
 
 /** 会話の一覧（新しいメッセージがある順） */
@@ -90,21 +91,27 @@ export function useMessageActions() {
   }
 
   return {
-    /** 企業: インターン生にメッセージを送る（会話が無ければ作られる）。jobPostingId で自社の募集を紐づけられる。会話の ID を返す */
-    async startConversation(studentId: number, body: string, jobPostingId: number | null = null) {
+    /**
+     * 企業: インターン生にメッセージを送る（会話が無ければ作られる）。senderName（担当者名）は必須。
+     * jobPostingId で自社の募集を紐づけられる。会話の ID を返す
+     */
+    async startConversation(studentId: number, body: string, senderName: string, jobPostingId: number | null = null) {
       const result = await apiFetch<{ conversation: Conversation; message: Message }>("/conversations", {
         method: "POST",
-        body: { conversation: { student_id: studentId, body, job_posting_id: jobPostingId } },
+        body: { conversation: { student_id: studentId, body, sender_name: senderName, job_posting_id: jobPostingId } },
       });
       await refreshSummaries();
       return result.conversation.id;
     },
 
-    /** 既存の会話に送る（インターン生の返信もこれ）。企業は jobPostingId で自社の募集を紐づけられる */
-    async sendMessage(conversationId: number, body: string, jobPostingId: number | null = null) {
+    /**
+     * 既存の会話に送る（インターン生の返信もこれ）。
+     * 企業は senderName（担当者名）が必須で、jobPostingId で自社の募集を紐づけられる。インターン生の senderName は null
+     */
+    async sendMessage(conversationId: number, body: string, senderName: string | null, jobPostingId: number | null = null) {
       const result = await apiFetch<{ message: Message }>(`${conversationKey(conversationId)}/messages`, {
         method: "POST",
-        body: { message: { body, job_posting_id: jobPostingId } },
+        body: { message: { body, sender_name: senderName, job_posting_id: jobPostingId } },
       });
       await Promise.all([mutate(conversationKey(conversationId)), refreshSummaries()]);
       return result.message;

@@ -26,7 +26,6 @@ export type StudentProfile = {
 export type CompanyProfile = {
   user_id: number;
   company_name: string;
-  contact_name: string;
   description: string | null;
   website: string | null;
   created_at: string;
@@ -50,7 +49,6 @@ export type StudentProfileInput = {
 
 export type CompanyProfileInput = {
   company_name: string;
-  contact_name: string;
   description: string;
   website: string;
 };
@@ -113,7 +111,6 @@ export function profileChecklist(
   const p = args[1];
   return [
     { label: "企業名", filled: present(p.company_name) },
-    { label: "担当者名", filled: present(p.contact_name) },
     { label: "企業概要", filled: present(p.description) },
     { label: "Web サイト", filled: present(p.website) },
   ];

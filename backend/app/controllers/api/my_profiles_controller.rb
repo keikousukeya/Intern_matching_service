@@ -9,7 +9,7 @@ module Api
       :name, :university, :faculty, :graduation_year, :desired_role, :bio,
       :portfolio_url, :github_url, :available_from, :available_to, { skill_names: [] }
     ].freeze
-    COMPANY_PARAMS = %i[company_name contact_name description website].freeze
+    COMPANY_PARAMS = %i[company_name description website].freeze
 
     def show
       render json: { profile: serialize(current_user.profile) }

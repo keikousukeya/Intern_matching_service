@@ -16,8 +16,7 @@ class ConversationSerializer
       # プロフィールが無い場合も画面が壊れないよう、ユーザー ID だけは返す
       "company" => {
         "user_id" => conversation.company_id,
-        "company_name" => company_profile&.company_name,
-        "contact_name" => company_profile&.contact_name
+        "company_name" => company_profile&.company_name
       },
       "student" => {
         "user_id" => conversation.student_id,

@@ -11,6 +11,7 @@ import { AuthorArticles } from "./AuthorArticles";
 import { FormAlert } from "./FormAlert";
 import { JobPostingCard } from "./JobPostingCard";
 import { Loading } from "./Loading";
+import { MarkdownBody } from "./MarkdownBody";
 import { RequireUser } from "./RequireUser";
 
 /** 企業プロフィールの詳細。スカウトを受け取ったインターン生が送信元の企業を確認するための画面 */
@@ -31,19 +32,12 @@ function Detail({ id, user }: { id: string; user: User }) {
 
   return (
     <article className="flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-8">
+      {/* 担当者名はメッセージ画面でだけ表示する（企業ページは会社としての紹介に絞る） */}
       <header className="flex flex-col gap-1 border-b border-slate-100 pb-5">
         <h1 className="text-2xl font-bold">{company.company_name}</h1>
-        <p className="text-slate-600">担当: {company.contact_name}</p>
       </header>
 
       <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-[8rem_1fr]">
-        <Item label="企業概要">
-          {company.description ? (
-            <p className="whitespace-pre-wrap leading-relaxed">{company.description}</p>
-          ) : (
-            <Empty />
-          )}
-        </Item>
         <Item label="Web サイト">
           {isSafeUrl(company.website) ? (
             <a
@@ -59,6 +53,18 @@ function Detail({ id, user }: { id: string; user: User }) {
           )}
         </Item>
       </dl>
+
+      {/* 企業概要は Markdown で書かれるため、見出しなどが入っても読みやすいよう幅いっぱいに表示する */}
+      <section className="flex flex-col gap-3 border-t border-slate-100 pt-5">
+        <h2 className="font-bold">企業概要</h2>
+        {company.description ? (
+          <div className="[&>div>:first-child]:mt-0">
+            <MarkdownBody>{company.description}</MarkdownBody>
+          </div>
+        ) : (
+          <Empty />
+        )}
+      </section>
 
       <CompanyJobPostings companyId={id} />
 

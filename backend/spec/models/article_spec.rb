@@ -31,6 +31,20 @@ RSpec.describe Article, type: :model do
       expect(article.errors.full_messages).to include("プロフィールを登録してから記事を書いてください")
     end
 
+    it "企業の記事は、公開するときだけ担当者名が必要（下書きは空でもよい）" do
+      published = build(:article, :by_company, contact_name: " ")
+
+      expect(published).not_to be_valid
+      expect(published.errors.full_messages).to include("担当者名を入力してください")
+      expect(build(:article, :by_company, :draft, contact_name: nil)).to be_valid
+      expect(build(:article, :by_company, contact_name: "あ" * 51)).not_to be_valid
+    end
+
+    it "インターン生の記事は担当者名が不要で、送っても保存しない" do
+      expect(build(:article, contact_name: nil)).to be_valid
+      expect(create(:article, contact_name: "なりすまし").contact_name).to be_nil
+    end
+
     it "タグは 5 個まで" do
       expect(build(:article, skill_names: (1..6).map { |i| "タグ#{i}" })).not_to be_valid
       expect(build(:article, skill_names: (1..5).map { |i| "タグ#{i}" })).to be_valid

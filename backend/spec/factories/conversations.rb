@@ -24,5 +24,7 @@ FactoryBot.define do
     conversation
     sender { conversation.company }
     sequence(:body) { |n| "メッセージ本文 #{n}" }
+    # 企業が送るときは担当者名が必要（インターン生の送信では保存されない）
+    sender_name { "担当 太郎" }
   end
 end

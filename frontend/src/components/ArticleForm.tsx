@@ -3,11 +3,13 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, type FieldErrors } from "@/lib/api";
 import type { Article, ArticleInput, ArticleStatus } from "@/lib/articles";
+import type { User } from "@/lib/auth";
+import { CONTACT_NAME_MAX_LENGTH, loadContactName, saveContactName } from "@/lib/contactName";
 import { useLeaveGuard } from "@/lib/leaveGuard";
 import { FormAlert } from "./FormAlert";
 import { FormField } from "./FormField";
 import { FormSection } from "./FormSection";
-import { MarkdownBody } from "./MarkdownBody";
+import { MarkdownTextArea } from "./MarkdownTextArea";
 import { SkillInput } from "./SkillInput";
 
 const MAX_TAGS = 5;
@@ -16,16 +18,21 @@ const BODY_MAX_LENGTH = 20000;
 type Props = {
   /** 編集時は既存の記事、新規作成時は null */
   article: Article | null;
+  /** 書いている人（企業なら担当者名の入力欄を出す） */
+  user: User;
   /** 保存して、移動先のパスを返す */
   onSave: (input: ArticleInput) => Promise<string>;
 };
 
 /** 記事の作成・編集フォーム。本文は Markdown で、「プレビュー」で表示を確認できる */
-export function ArticleForm({ article, onSave }: Props) {
+export function ArticleForm({ article, user, onSave }: Props) {
+  const isCompany = user.role === "company";
+  // 企業の担当者名。新しい記事では、このブラウザで最後に使った名前を最初から入れておく
+  const initialContactName = article ? (article.author.contact_name ?? "") : isCompany ? loadContactName(user.id) : "";
   const [title, setTitle] = useState(article?.title ?? "");
+  const [contactName, setContactName] = useState(initialContactName);
   const [body, setBody] = useState(article?.body ?? "");
   const [skills, setSkills] = useState<string[]>(article?.skills ?? []);
-  const [tab, setTab] = useState<"write" | "preview">("write");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -34,6 +41,7 @@ export function ArticleForm({ article, onSave }: Props) {
   const dirty =
     title !== (article?.title ?? "") ||
     body !== (article?.body ?? "") ||
+    contactName !== initialContactName ||
     JSON.stringify(skills) !== JSON.stringify(article?.skills ?? []);
   const { leave } = useLeaveGuard(dirty);
 
@@ -43,7 +51,9 @@ export function ArticleForm({ article, onSave }: Props) {
     setFormError(null);
 
     try {
-      leave(await onSave({ title, body, status, skill_names: skills }));
+      const path = await onSave({ title, body, status, skill_names: skills, ...(isCompany && { contact_name: contactName }) });
+      if (isCompany) saveContactName(user.id, contactName);
+      leave(path);
     } catch (error) {
       if (error instanceof ApiError) {
         setFieldErrors(error.errors);
@@ -61,10 +71,6 @@ export function ArticleForm({ article, onSave }: Props) {
     void save("published");
   }
 
-  const bodyErrors = fieldErrors.body ?? [];
-  const tabClass =
-    "rounded-t-lg border border-b-0 px-4 py-1.5 text-sm aria-selected:border-slate-300 aria-selected:bg-white aria-selected:font-medium aria-selected:text-indigo-700 border-transparent text-slate-500 hover:text-slate-700";
-
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
       <FormAlert message={formError} />
@@ -81,55 +87,33 @@ export function ArticleForm({ article, onSave }: Props) {
           errors={fieldErrors.title}
         />
 
-        <div className="flex flex-col gap-1.5">
-          <div className="flex items-end justify-between gap-2">
-            <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
-              本文（Markdown）
-              <span className="rounded bg-rose-50 px-1.5 py-0.5 text-xs text-rose-600">必須</span>
-            </span>
-            <div role="tablist" aria-label="本文の表示切り替え" className="flex gap-1">
-              <button type="button" role="tab" aria-selected={tab === "write"} onClick={() => setTab("write")} className={tabClass}>
-                書く
-              </button>
-              <button type="button" role="tab" aria-selected={tab === "preview"} onClick={() => setTab("preview")} className={tabClass}>
-                プレビュー
-              </button>
-            </div>
-          </div>
-          {tab === "write" ? (
-            <textarea
-              id="field-body"
-              name="body"
-              aria-label="本文（Markdown）"
-              aria-invalid={bodyErrors.length > 0}
-              aria-describedby="field-body-hint"
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              maxLength={BODY_MAX_LENGTH}
-              rows={20}
-              placeholder={"## はじめに\n\nこの記事では…\n\n```ruby\nputs \"Hello\"\n```"}
-              className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 font-mono text-sm leading-relaxed outline-none transition focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 aria-invalid:border-rose-500"
-            />
-          ) : (
-            <div className="min-h-[20rem] rounded-lg border border-slate-300 bg-white px-4 py-2" aria-live="polite">
-              {body.trim() ? <MarkdownBody>{body}</MarkdownBody> : <p className="py-4 text-slate-400">本文がまだありません。</p>}
-            </div>
-          )}
-          {bodyErrors.length > 0 ? (
-            <ul className="text-sm text-rose-600">
-              {bodyErrors.map((message) => (
-                <li key={message}>{message}</li>
-              ))}
-            </ul>
-          ) : (
-            <p id="field-body-hint" className="flex flex-wrap justify-between gap-2 text-xs text-slate-500">
-              <span>見出し（##）・コードブロック（```）・表・チェックリストが使えます。HTML タグは表示されません。</span>
-              <span>
-                {body.length.toLocaleString()} / {BODY_MAX_LENGTH.toLocaleString()} 文字
-              </span>
-            </p>
-          )}
-        </div>
+        {isCompany && (
+          <FormField
+            label="担当者名"
+            name="contact_name"
+            value={contactName}
+            onChange={(event) => setContactName(event.target.value)}
+            maxLength={CONTACT_NAME_MAX_LENGTH}
+            autoComplete="name"
+            placeholder="例: 佐藤 美咲"
+            hint="公開するときに必要です（下書きは空でも保存できます）。記事には「企業名（担当: ○○）」と表示されます"
+            errors={fieldErrors.contact_name}
+          />
+        )}
+
+        <MarkdownTextArea
+          label="本文"
+          name="body"
+          requiredMark
+          value={body}
+          onChange={setBody}
+          maxLength={BODY_MAX_LENGTH}
+          rows={20}
+          placeholder={"## はじめに\n\nこの記事では…\n\n```ruby\nputs \"Hello\"\n```"}
+          hint="コードブロック（```）やチェックリストも使えます。"
+          emptyText="本文がまだありません。"
+          errors={fieldErrors.body}
+        />
 
         <SkillInput
           label="タグ"

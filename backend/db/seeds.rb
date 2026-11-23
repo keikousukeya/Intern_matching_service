@@ -37,6 +37,7 @@ DESIRED_ROLES = %w[
   機械学習エンジニア UI/UXデザイナー プロダクトマネージャー ゲームエンジニア
 ].freeze
 
+# contact_name はプロフィールには保存せず、その企業の記事・メッセージの担当者名として使う
 COMPANIES = [
   { company_name: "株式会社ネクストブリッジ", contact_name: "佐藤 美咲",
     description: "中小企業向けの業務管理 SaaS を開発しています。Rails と React を中心に、少人数のチームで企画から運用まで一貫して担当します。",
@@ -211,13 +212,19 @@ def upsert_user!(email, role)
   end
 end
 
+# 企業ユーザー（company1@example.com など）の担当者名。インターン生なら nil（記事・メッセージでは使わない）
+def seed_contact_name(user)
+  number = user.email[/\Acompany(\d+)@/, 1]
+  number && COMPANIES[number.to_i - 1][:contact_name]
+end
+
 ActiveRecord::Base.transaction do
   Skill.find_or_create_all_by_names(SKILL_NAMES)
 
   # 企業: company1@example.com 〜 company5@example.com
   COMPANIES.each.with_index(1) do |attributes, index|
     user = upsert_user!("company#{index}@example.com", :company)
-    user.profile_or_build.update!(attributes)
+    user.profile_or_build.update!(attributes.except(:contact_name))
   end
 
   # インターン生: student1@example.com 〜 student30@example.com
@@ -272,7 +279,7 @@ ActiveRecord::Base.transaction do
     author = User.find_by!(email: email)
     article = author.articles.find_or_initialize_by(title: attributes[:title])
     article.update!(body: attributes[:body], status: attributes.fetch(:status, :published),
-                    skill_names: attributes[:skills])
+                    skill_names: attributes[:skills], contact_name: seed_contact_name(author))
     # 新着順が分かりやすいよう、公開日時をずらす（検証は不要なため直接書き換える）
     article.update_columns(published_at: days_ago.days.ago) if days_ago
   end
@@ -306,6 +313,7 @@ ActiveRecord::Base.transaction do
 
     messages.each do |sender, hours_ago, body, job_posting|
       conversation.messages.create!(sender: sender == :company ? company : student, body: body,
+                                    sender_name: seed_contact_name(company),
                                     job_posting: job_posting, created_at: hours_ago.hours.ago)
     end
   end

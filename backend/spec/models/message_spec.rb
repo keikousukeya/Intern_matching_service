@@ -32,6 +32,26 @@ RSpec.describe Message, type: :model do
     expect(message.errors.full_messages).to include("送信者はこの会話の参加者である必要があります")
   end
 
+  describe "担当者名" do
+    it "企業が送るときは必須で、50 文字まで" do
+      message = build(:message, conversation: conversation, sender_name: " ")
+
+      expect(message).not_to be_valid
+      expect(message.errors.full_messages).to include("担当者名を入力してください")
+      expect(build(:message, conversation: conversation, sender_name: "あ" * 51)).not_to be_valid
+      expect(build(:message, conversation: conversation, sender_name: "あ" * 50)).to be_valid
+    end
+
+    it "前後の空白を除いて保存する" do
+      expect(create(:message, conversation: conversation, sender_name: "  佐藤 美咲 ").sender_name).to eq("佐藤 美咲")
+    end
+
+    it "インターン生が送るときは不要で、送っても保存しない" do
+      expect(build(:message, conversation: conversation, sender: conversation.student, sender_name: nil)).to be_valid
+      expect(create(:message, conversation: conversation, sender: conversation.student, sender_name: "なりすまし").sender_name).to be_nil
+    end
+  end
+
   it "送信すると会話の最終メッセージ日時が更新される" do
     message = create(:message, conversation: conversation)
 

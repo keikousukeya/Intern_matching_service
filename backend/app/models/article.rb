@@ -6,6 +6,7 @@ class Article < ApplicationRecord
   TITLE_MAX_LENGTH = 100
   BODY_MAX_LENGTH = 20_000
   EXCERPT_LENGTH = 120
+  CONTACT_NAME_MAX_LENGTH = 50
 
   belongs_to :author, class_name: "User"
   # 入力した順に並べる
@@ -18,9 +19,15 @@ class Article < ApplicationRecord
   # タイトルは前後の空白を除く。本文は改行・インデント（コードブロック）を残すため、末尾の空白だけ除く
   normalizes :title, with: ->(value) { value.strip.presence }
   normalizes :body, with: ->(value) { value.rstrip.presence }
+  normalizes :contact_name, with: ->(value) { value.strip.presence }
+
+  # 企業の記事は、公開するときに担当者名が必要（下書きでは空でもよい）。インターン生の記事では使わない（氏名を表示する）
+  before_validation :clear_contact_name_unless_company
 
   validates :title, presence: true, length: { maximum: TITLE_MAX_LENGTH }
   validates :body, presence: true, length: { maximum: BODY_MAX_LENGTH }
+  validates :contact_name, length: { maximum: CONTACT_NAME_MAX_LENGTH }
+  validates :contact_name, presence: true, if: -> { published? && written_by_company? }
   validate :author_must_have_profile
 
   before_save :set_published_at
@@ -46,7 +53,15 @@ class Article < ApplicationRecord
     text.truncate(EXCERPT_LENGTH)
   end
 
+  def written_by_company?
+    author&.company? || false
+  end
+
   private
+
+  def clear_contact_name_unless_company
+    self.contact_name = nil unless written_by_company?
+  end
 
   # 記事の書き手として氏名・企業名を表示するため、プロフィールの登録を必須にする。
   # 項目名を前に付けない文にするため base に追加する（画面ではフォームの上にまとめて出す）
