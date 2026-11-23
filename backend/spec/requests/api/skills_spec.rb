@@ -12,7 +12,16 @@ RSpec.describe "Api::Skills", type: :request do
 
     get "/api/skills", params: { q: "re" }
 
-    expect(response.parsed_body["skills"]).to eq(%w[React Redux])
+    expect(response.parsed_body["skills"].pluck("name")).to eq(%w[React Redux])
+  end
+
+  it "名前と分類を返す" do
+    create(:skill, name: "React")
+    log_in_as(create(:user))
+
+    get "/api/skills", params: { q: "react" }
+
+    expect(response.parsed_body["skills"]).to eq([ { "name" => "React", "category" => "framework" } ])
   end
 
   it "q が無ければよく使われているスキルから返す" do
@@ -22,6 +31,6 @@ RSpec.describe "Api::Skills", type: :request do
 
     get "/api/skills"
 
-    expect(response.parsed_body["skills"]).to eq(%w[Go Ada])
+    expect(response.parsed_body["skills"].pluck("name")).to eq(%w[Go Ada])
   end
 end
