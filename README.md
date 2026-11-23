@@ -129,6 +129,9 @@ docker compose exec frontend npm install
 - **企業が重視する項目で比べられる一覧**: 一覧カードにはスキル・希望期間・志望職種を表示し、企業が一目で比べられるようにした。
 - **スキルは候補つき自由入力**: スキルはマスタ（`skills`）と中間テーブル（`student_skills`）で管理する。入力中は既存のスキルを候補に出し、候補に無いスキルもそのまま登録できる。
   `React` と `react` は同じスキルとして扱い（小文字化した値に一意インデックス）、表記ゆれで検索（F-04）しにくくなるのを防ぐ。
+  候補はブラウザ標準の `<datalist>` ではなく独自の候補リスト（WAI-ARIA の combobox）で出す。矢印キー・Enter で選べ、入力した文字に一致する部分を太字にし、候補に無いスキルは「新しく追加」から登録できる。
+  入力しなくても選べるよう、よく使われているスキル（上位 20 個）を「言語」「フレームワーク」「インフラ・ツール」「デザイン」「その他」に分けて並べ、クリックで追加・もう一度押すと外せる。
+  分類は `skills.category` に持ち、よく使われるスキル名との対応表（`Skill::CATEGORY_BY_NAME`）から作成時に自動で決める。表に無いスキルは「その他」になるため、自由入力はこれまでどおりできる。プロフィール・募集・記事の入力と各検索フォームの 6 か所で共通の部品（`SkillInput`）を使う。
 - **N+1 の回避とページネーション**: 一覧は `includes(:skills)` でスキルをまとめて読み込み、20 件ずつ返す。
 
 ### インターン生検索の設計（F-04）
@@ -193,7 +196,7 @@ docker compose exec frontend npm install
 | PUT | `/api/me/profile` | 自分のプロフィールを作成・更新 | 必要 |
 | GET | `/api/students` | インターン生の検索（20 件ずつ）。条件はすべて任意: `q`（キーワード）・`skills[]`・`skill_match`（`all` / `any`）・`university`・`graduation_year`・`desired_role`・`sort`（`newest` / `updated`）・`page` | 企業のみ |
 | GET | `/api/students/:id` | インターン生の詳細（`:id` はユーザー ID） | 企業のみ |
-| GET | `/api/skills?q=…` | スキル入力の候補（`q` が無ければよく使われている順） | 必要 |
+| GET | `/api/skills?q=…` | スキル入力の候補（20 件まで。`q` が無ければよく使われている順）。名前と分類（`category`: `language` / `framework` / `infrastructure` / `design` / `other`）を返す | 必要 |
 | GET | `/api/companies/:id` | 企業プロフィールの詳細（`:id` はユーザー ID） | 必要 |
 | GET | `/api/job_postings` | 公開中で締切前の募集（20 件ずつ）。条件はすべて任意: `q`（キーワード）・`skills[]`・`skill_match`（`all` / `any`）・`work_style`（`onsite` / `remote` / `hybrid`）・`company_id`・`sort`（`newest` / `deadline`）・`page` | 必要 |
 | GET | `/api/job_postings/:id` | 募集の詳細（公開中のもの、または自社のもの） | 必要 |

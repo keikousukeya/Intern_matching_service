@@ -2,6 +2,24 @@
 class Skill < ApplicationRecord
   NAME_MAX_LENGTH = 30
 
+  # 分類。入力欄の「よく使われているスキル」を分類ごとに分けて表示するために使う
+  enum :category, {
+    language: "language",
+    framework: "framework",
+    infrastructure: "infrastructure",
+    design: "design",
+    other: "other"
+  }, prefix: true, validate: true
+
+  # よく使われるスキル名（小文字）と分類の対応。自由入力で作られたスキルもこれで自動的に分類する。
+  # 載っていないスキルは「その他」になる
+  CATEGORY_BY_NAME = {
+    "language" => %w[ruby python go java kotlin swift typescript javascript php c# c++ c rust sql elixir dart scala html css],
+    "framework" => %w[rails django react next.js vue.js node.js laravel unity flutter angular spring express svelte],
+    "infrastructure" => %w[postgresql mysql aws gcp azure docker kubernetes git github linux firebase redis mongodb terraform],
+    "design" => %w[figma ui/ux デザイン photoshop illustrator]
+  }.flat_map { |category, names| names.map { |name| [ name, category ] } }.to_h.freeze
+
   has_many :student_skills, dependent: :destroy
   has_many :student_profiles, through: :student_skills
   has_many :job_posting_skills, dependent: :destroy
@@ -12,6 +30,8 @@ class Skill < ApplicationRecord
 
   validates :name, presence: true, length: { maximum: NAME_MAX_LENGTH }
   validate :name_unique_ignoring_case
+
+  before_create :assign_category
 
   # 大文字小文字を区別せずに名前で探す
   scope :named, ->(name) { where("lower(name) = ?", name.squish.downcase) }
@@ -37,6 +57,13 @@ class Skill < ApplicationRecord
   end
 
   private
+
+  # 分類が指定されていなければ（既定の「その他」のままなら）、対応表から決める
+  def assign_category
+    return unless category_other?
+
+    self.category = CATEGORY_BY_NAME.fetch(name.downcase, "other")
+  end
 
   def name_unique_ignoring_case
     return if name.blank?
