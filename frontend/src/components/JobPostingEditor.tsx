@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import type { User } from "@/lib/auth";
 import { useJobPosting, useJobPostingActions, type JobPostingInput } from "@/lib/jobPostings";
@@ -10,7 +9,7 @@ import { JobPostingForm } from "./JobPostingForm";
 import { Loading } from "./Loading";
 import { RequireUser } from "./RequireUser";
 
-/** 企業向け: 募集の作成（id なし）・編集（id あり）画面。保存したら募集管理へ戻る */
+/** 企業向け: 募集の作成（id なし）・編集（id あり）画面。保存したら募集管理へ戻る（移動はフォームが行う） */
 export function JobPostingEditor({ id }: { id?: string }) {
   return (
     <RequireUser role="company">
@@ -20,19 +19,17 @@ export function JobPostingEditor({ id }: { id?: string }) {
 }
 
 function Create() {
-  const router = useRouter();
   const { create } = useJobPostingActions();
 
   async function handleSave(input: JobPostingInput) {
     await create(input);
-    router.push("/mypage/job_postings");
+    return "/mypage/job_postings";
   }
 
   return <JobPostingForm posting={null} onSave={handleSave} />;
 }
 
 function Edit({ id, user }: { id: string; user: User }) {
-  const router = useRouter();
   const { data, error, isLoading } = useJobPosting(id);
   const { update } = useJobPostingActions();
 
@@ -45,7 +42,7 @@ function Edit({ id, user }: { id: string; user: User }) {
 
   async function handleSave(input: JobPostingInput) {
     await update(Number(id), input);
-    router.push("/mypage/job_postings");
+    return "/mypage/job_postings";
   }
 
   return <JobPostingForm posting={data.job_posting} onSave={handleSave} />;

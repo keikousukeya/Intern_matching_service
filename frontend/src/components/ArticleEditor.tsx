@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { ApiError } from "@/lib/api";
 import { useArticle, useArticleActions, type ArticleInput } from "@/lib/articles";
 import type { User } from "@/lib/auth";
@@ -10,7 +9,7 @@ import { FormAlert } from "./FormAlert";
 import { Loading } from "./Loading";
 import { RequireUser } from "./RequireUser";
 
-/** 記事の作成（id なし）・編集（id あり）画面。インターン生・企業のどちらも使える。保存したら記事の詳細へ移動する */
+/** 記事の作成（id なし）・編集（id あり）画面。インターン生・企業のどちらも使える。保存したら記事の詳細へ移動する（移動はフォームが行う） */
 export function ArticleEditor({ id }: { id?: string }) {
   return (
     <RequireUser>
@@ -20,19 +19,17 @@ export function ArticleEditor({ id }: { id?: string }) {
 }
 
 function Create() {
-  const router = useRouter();
   const { create } = useArticleActions();
 
   async function handleSave(input: ArticleInput) {
     const article = await create(input);
-    router.push(`/articles/${article.id}`);
+    return `/articles/${article.id}`;
   }
 
   return <ArticleForm article={null} onSave={handleSave} />;
 }
 
 function Edit({ id, user }: { id: string; user: User }) {
-  const router = useRouter();
   const { data, error, isLoading } = useArticle(id);
   const { update } = useArticleActions();
 
@@ -45,7 +42,7 @@ function Edit({ id, user }: { id: string; user: User }) {
 
   async function handleSave(input: ArticleInput) {
     await update(Number(id), input);
-    router.push(`/articles/${id}`);
+    return `/articles/${id}`;
   }
 
   return <ArticleForm article={data.article} onSave={handleSave} />;

@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, type FieldErrors } from "@/lib/api";
 import type { Article, ArticleInput, ArticleStatus } from "@/lib/articles";
+import { useLeaveGuard } from "@/lib/leaveGuard";
 import { FormAlert } from "./FormAlert";
 import { FormField } from "./FormField";
 import { FormSection } from "./FormSection";
@@ -15,7 +16,8 @@ const BODY_MAX_LENGTH = 20000;
 type Props = {
   /** 編集時は既存の記事、新規作成時は null */
   article: Article | null;
-  onSave: (input: ArticleInput) => Promise<unknown>;
+  /** 保存して、移動先のパスを返す */
+  onSave: (input: ArticleInput) => Promise<string>;
 };
 
 /** 記事の作成・編集フォーム。本文は Markdown で、「プレビュー」で表示を確認できる */
@@ -28,13 +30,20 @@ export function ArticleForm({ article, onSave }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // 保存していない変更（最初の値との違い）があれば、ページを離れる前に確認する
+  const dirty =
+    title !== (article?.title ?? "") ||
+    body !== (article?.body ?? "") ||
+    JSON.stringify(skills) !== JSON.stringify(article?.skills ?? []);
+  const { leave } = useLeaveGuard(dirty);
+
   async function save(status: ArticleStatus) {
     setSubmitting(true);
     setFieldErrors({});
     setFormError(null);
 
     try {
-      await onSave({ title, body, status, skill_names: skills });
+      leave(await onSave({ title, body, status, skill_names: skills }));
     } catch (error) {
       if (error instanceof ApiError) {
         setFieldErrors(error.errors);
