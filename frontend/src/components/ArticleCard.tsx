@@ -10,11 +10,15 @@ export function ArticleCard({
   article,
   viewer,
   showAuthor = true,
+  headingLevel = "h2",
 }: {
   article: ArticleSummary;
   viewer: User;
   showAuthor?: boolean;
+  /** タイトルの見出しレベル（見出しの下に並べるときは h3） */
+  headingLevel?: "h2" | "h3";
 }) {
+  const Heading = headingLevel;
   return (
     <article className="relative flex h-full flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:border-indigo-300 hover:shadow">
       <div className="flex flex-col gap-1">
@@ -24,12 +28,12 @@ export function ArticleCard({
             <AuthorName author={article.author} viewer={viewer} />
           </div>
         )}
-        <h2 className="text-lg font-bold">
+        <Heading className="text-lg font-bold">
           {/* カード全体をクリックできるようにする（書いた人のリンクは z-10 で上に出す） */}
           <Link href={`/articles/${article.id}`} className="after:absolute after:inset-0 hover:text-indigo-600">
             {article.title}
           </Link>
-        </h2>
+        </Heading>
         <p className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
           <ArticleStatusBadge status={article.status} />
           {article.published_at && <time dateTime={article.published_at}>{formatDateTime(article.published_at)}</time>}

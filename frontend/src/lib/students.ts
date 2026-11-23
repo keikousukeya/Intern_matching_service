@@ -74,11 +74,11 @@ export function hasStudentFilters(search: StudentSearchParams): boolean {
   return toQuery({ ...search, sort: "newest" }, "skills").toString() !== "";
 }
 
-/** 企業向け: インターン生の検索結果（20 件ずつ） */
-export function useStudents(search: StudentSearchParams, page: number) {
+/** 企業向け: インターン生の検索結果（20 件ずつ）。enabled が false なら取得しない */
+export function useStudents(search: StudentSearchParams, page: number, enabled = true) {
   const query = toQuery(search, "skills[]");
   query.set("page", String(page));
-  return useSWR<{ students: StudentProfile[]; meta: PageMeta }>(`/students?${query}`, fetcher, {
+  return useSWR<{ students: StudentProfile[]; meta: PageMeta }>(enabled ? `/students?${query}` : null, fetcher, {
     // 条件やページを切り替えている間も前の結果を表示したままにする（画面のちらつき防止）
     keepPreviousData: true,
   });

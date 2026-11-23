@@ -5,7 +5,17 @@ import { deadlineText, StatusBadge, WorkStyleBadge } from "./JobPostingParts";
 import { SkillTag } from "./SkillTag";
 
 /** 募集一覧の 1 件。インターン生が「業務内容・期間・報酬・働き方」を一目で比べられるようにする */
-export function JobPostingCard({ posting, showCompany = true }: { posting: JobPosting; showCompany?: boolean }) {
+export function JobPostingCard({
+  posting,
+  showCompany = true,
+  headingLevel = "h2",
+}: {
+  posting: JobPosting;
+  showCompany?: boolean;
+  /** タイトルの見出しレベル（見出しの下に並べるときは h3） */
+  headingLevel?: "h2" | "h3";
+}) {
+  const Heading = headingLevel;
   const period = formatPeriod(posting.starts_on, posting.ends_on);
 
   return (
@@ -15,12 +25,12 @@ export function JobPostingCard({ posting, showCompany = true }: { posting: JobPo
           <WorkStyleBadge workStyle={posting.work_style} />
           <StatusBadge posting={posting} />
         </div>
-        <h2 className="text-lg font-bold">
+        <Heading className="text-lg font-bold">
           {/* カード全体をクリックできるようにする */}
           <Link href={`/job_postings/${posting.id}`} className="after:absolute after:inset-0 hover:text-indigo-600">
             {posting.title}
           </Link>
-        </h2>
+        </Heading>
         {showCompany && <p className="text-sm text-slate-600">{posting.company.company_name ?? "（企業名未登録）"}</p>}
       </div>
 
