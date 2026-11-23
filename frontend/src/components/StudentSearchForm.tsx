@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import type { SkillMatch, StudentSearchParams } from "@/lib/students";
 import { FormField, SelectField } from "./FormField";
+import { SearchPanel, type FilterChip } from "./SearchPanel";
 import { SkillInput } from "./SkillInput";
 import { SkillMatchField } from "./SkillMatchField";
 
@@ -17,7 +18,7 @@ type Props = {
 
 /**
  * 企業向け: インターン生の検索フォーム（F-04）。
- * 入力中は画面内だけで保持し、「検索する」で URL に反映する（1 文字ごとに API を呼ばないため）。
+ * 入力中は画面内だけで保持し、「検索」で URL に反映する（1 文字ごとに API を呼ばないため）。
  */
 export function StudentSearchForm({ initial, onSearch, onClear }: Props) {
   const [skills, setSkills] = useState(initial.skills);
@@ -27,9 +28,7 @@ export function StudentSearchForm({ initial, onSearch, onClear }: Props) {
   const thisYear = new Date().getFullYear();
   const years = Array.from({ length: 8 }, (_, i) => thisYear - 1 + i);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  function handleSubmit(form: FormData) {
     const text = (name: string) => String(form.get(name) ?? "");
     onSearch({
       q: text("q"),
@@ -42,23 +41,36 @@ export function StudentSearchForm({ initial, onSearch, onClear }: Props) {
     });
   }
 
-  return (
-    <form
-      role="search"
-      aria-label="インターン生の検索"
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-    >
-      <FormField
-        label="キーワード"
-        name="q"
-        type="search"
-        defaultValue={initial.q}
-        maxLength={100}
-        placeholder="例: 個人開発 Rails"
-        hint="氏名・大学・学部・志望職種・自己紹介・スキルから探します。スペースで区切るとすべてを含む人に絞り込みます。"
-      />
+  // 適用中の詳細条件（URL の条件から作る。× でその条件だけ外して検索し直す）
+  const textChips: { key: "university" | "graduationYear" | "desiredRole"; label: string }[] = [
+    { key: "university", label: `大学: ${initial.university}` },
+    { key: "graduationYear", label: `卒業予定: ${initial.graduationYear}年` },
+    { key: "desiredRole", label: `志望職種: ${initial.desiredRole}` },
+  ];
+  const chips: FilterChip[] = [
+    ...initial.skills.map((skill) => ({
+      key: `skill-${skill}`,
+      label: `スキル: ${skill}`,
+      onRemove: () => onSearch({ ...initial, skills: initial.skills.filter((s) => s !== skill) }),
+    })),
+    ...textChips
+      .filter(({ key }) => initial[key] !== "")
+      .map(({ key, label }) => ({ key, label, onRemove: () => onSearch({ ...initial, [key]: "" }) })),
+  ];
 
+  return (
+    <SearchPanel
+      ariaLabel="インターン生の検索"
+      keyword={{
+        defaultValue: initial.q,
+        placeholder: "キーワードで探す（例: 個人開発 Rails）",
+        hint: "氏名・大学・学部・志望職種・自己紹介・スキルから探します。スペースで区切るとすべてを含む人に絞り込みます。",
+      }}
+      chips={chips}
+      hasFilters={initial.q !== "" || chips.length > 0}
+      onSubmit={handleSubmit}
+      onClear={onClear}
+    >
       <div className="flex flex-col gap-3">
         <SkillInput
           value={skills}
@@ -92,19 +104,6 @@ export function StudentSearchForm({ initial, onSearch, onClear }: Props) {
           placeholder="例: エンジニア"
         />
       </div>
-
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          onClick={onClear}
-          className="rounded-lg border border-slate-300 px-6 py-2.5 text-slate-700 hover:bg-slate-50"
-        >
-          条件をクリア
-        </button>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-6 py-2.5 font-medium text-white hover:bg-indigo-700">
-          検索する
-        </button>
-      </div>
-    </form>
+    </SearchPanel>
   );
 }
