@@ -12,8 +12,8 @@ export const ARTICLE_STATUS_LABELS: Record<ArticleStatus, string> = {
   draft: "下書き",
 };
 
-/** 書いた人（表示名とロールだけ。メールアドレスなどは返らない） */
-export type ArticleAuthor = { user_id: number; role: Role; name: string | null };
+/** 書いた人（表示名とロールだけ。メールアドレスなどは返らない）。contact_name は企業の記事の担当者名（インターン生の記事では null） */
+export type ArticleAuthor = { user_id: number; role: Role; name: string | null; contact_name: string | null };
 
 type ArticleBase = {
   id: number;
@@ -37,6 +37,8 @@ export type ArticleInput = {
   body: string;
   status: ArticleStatus;
   skill_names: string[];
+  /** 企業の記事の担当者名（公開するときは必須）。インターン生は送らない */
+  contact_name?: string;
 };
 
 /** 記事一覧の検索条件。空文字は「指定なし」 */

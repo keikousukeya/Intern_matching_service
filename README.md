@@ -231,6 +231,24 @@ docker compose exec frontend npm install
 - **閉じていても条件を保つ**: 詳細条件の入力欄は外さずに `hidden` で隠すだけにしている。そのため、閉じた状態でキーワードだけを変えて検索しても、ほかの条件は消えない。
 - 検索すると詳細条件は閉じる。開くかどうかは URL には持たせていない（ページを開いたときはいつも閉じた状態）。
 
+### 企業プロフィールの概要（UI 改善）
+
+- **企業概要を Markdown に対応**: 企業ページ（`/companies/:id`）では、技術ブログと同じ `MarkdownBody` で概要を表示する。見出しを入れても読みやすいように、概要は表の 1 行ではなく幅いっぱいの「企業概要」セクションに移した。
+- **入力欄の共通部品** `src/components/MarkdownTextArea.tsx`: 「書く／プレビュー」の切り替えと文字数を表示する。記事の本文と企業概要の両方で使う。
+  - プレビュー中も textarea は `hidden` で隠すだけにしている。企業プロフィールのフォームは `FormData` で値を読むため、外すとプレビュー中に保存したとき概要が空で送られてしまう。
+- **画像について**: 表示のルールは技術ブログと同じで、画像は読み込まずにリンクとして表示する（外部サーバーに閲覧者の情報を送らないため）。画像のアップロードは新機能として別途検討する。
+- **担当者名の表示場所**: 企業ページには担当者名を出さない。担当者名は下の「担当者名の入力場所」のとおり、メッセージ・記事ごとに入力する。
+
+### 担当者名の入力場所（UI 改善）
+
+- **課題**: 担当者名を企業プロフィールに 1 つだけ登録する形だったため、1 社で複数の社員がスカウトやブログを担当すると、誰が送った・書いたのか分からなかった。
+- **変更**: 企業プロフィールから担当者名の入力をなくし、次のときに入力する形にした。
+  - スカウト・メッセージ: 企業が送るメッセージには毎回必須（`messages.sender_name`）。会話画面ではメッセージごとに「担当: ○○」と表示する
+  - 技術ブログ: 企業が記事を公開するときに必須（`articles.contact_name`）。下書きは空でも保存できる。記事には「企業名（担当: ○○）」と表示する
+  - インターン生のメッセージ・記事では使わない（送られても保存しない）
+- **入力の手間を減らす**: 最後に使った担当者名をブラウザ（localStorage）に覚えておき、次の入力欄に最初から入れておく（`src/lib/contactName.ts`）。会話画面では、その会話で自社が最後に使った名前を優先する。
+- **既存データ**: マイグレーションで、既存のメッセージ・記事にその時点の企業プロフィールの担当者名を写した。`company_profiles.contact_name` 列は使わなくなったが、データは残している（モデルでは `ignored_columns` で無視。NOT NULL は外した）。
+
 ## API 一覧
 
 | メソッド | パス | 内容 | 認証 |
@@ -253,16 +271,16 @@ docker compose exec frontend npm install
 | GET | `/api/me/job_postings` | 自社の募集（非公開・締切済みも含む。更新日時の新しい順） | 企業のみ |
 | GET | `/api/articles` | 公開中の技術ブログの記事（新着順・20 件ずつ。本文の代わりに抜粋）。条件はすべて任意: `q`（キーワード）・`skills[]`（タグ）・`skill_match`（`all` / `any`）・`author_role`（`student` / `company`）・`author_id`・`page` | 必要 |
 | GET | `/api/articles/:id` | 記事の詳細（本文は Markdown。公開中のもの、または自分のもの） | 必要 |
-| POST | `/api/articles` | 記事を作成（`title`・`body`・`status`（`draft` / `published`）・`skill_names[]`。プロフィールの登録が必要） | 必要 |
+| POST | `/api/articles` | 記事を作成（`title`・`body`・`status`（`draft` / `published`）・`skill_names[]`。企業は公開するときに `contact_name`（担当者名）が必要。プロフィールの登録が必要） | 必要 |
 | PUT | `/api/articles/:id` | 記事を更新（`status` で公開・下書きを切り替え） | 書いた本人のみ |
 | DELETE | `/api/articles/:id` | 記事を削除 | 書いた本人のみ |
 | GET | `/api/me/articles` | 自分の記事（下書きも含む。更新日時の新しい順） | 必要 |
 | GET | `/api/conversations?page=1` | 自分が参加している会話の一覧（新しいメッセージ順・未読数と最新メッセージつき） | 必要 |
-| POST | `/api/conversations` | インターン生にメッセージを送る（`student_id`・`body`・任意で `job_posting_id`。会話が無ければ作る） | 企業のみ |
+| POST | `/api/conversations` | インターン生にメッセージを送る（`student_id`・`body`・`sender_name`（担当者名）・任意で `job_posting_id`。会話が無ければ作る） | 企業のみ |
 | GET | `/api/conversations/unread_count` | 未読メッセージの合計 | 必要 |
 | GET | `/api/conversations/:id` | 会話とメッセージ（古い順・最新 100 件） | 当事者のみ |
 | PUT | `/api/conversations/:id/read` | 会話を既読にする | 当事者のみ |
-| POST | `/api/conversations/:id/messages` | 会話にメッセージを送る（インターン生の返信もこれ。企業は任意で `job_posting_id`） | 当事者のみ |
+| POST | `/api/conversations/:id/messages` | 会話にメッセージを送る（インターン生の返信もこれ。企業は `sender_name`（担当者名）が必須で、任意で `job_posting_id`） | 当事者のみ |
 | GET | `/api/health` | 疎通確認 | 不要 |
 
 エラー時は `{ "message": "…", "errors": { "項目名": ["日本語のメッセージ"] } }` の形で返します。

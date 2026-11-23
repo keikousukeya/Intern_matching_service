@@ -6,7 +6,9 @@ RSpec.describe "Api::Conversations", type: :request do
   let(:outsider) { create(:student_profile).user }
 
   describe "POST /api/conversations" do
-    let(:params) { { conversation: { student_id: student.id, body: "はじめまして。ぜひお話ししませんか？" } } }
+    let(:params) do
+      { conversation: { student_id: student.id, body: "はじめまして。ぜひお話ししませんか？", sender_name: "佐藤 美咲" } }
+    end
 
     it "企業はインターン生にメッセージを送れる（会話と参加者が作られる）" do
       log_in_as(company)
@@ -16,7 +18,8 @@ RSpec.describe "Api::Conversations", type: :request do
 
       expect(response).to have_http_status(:created)
       body = response.parsed_body
-      expect(body["message"]).to include("sender_id" => company.id, "body" => "はじめまして。ぜひお話ししませんか？")
+      expect(body["message"]).to include("sender_id" => company.id, "sender_name" => "佐藤 美咲",
+                                         "body" => "はじめまして。ぜひお話ししませんか？")
       expect(body["conversation"]["student"]).to include("user_id" => student.id, "name" => student.student_profile.name)
       expect(Conversation.last.participants.map(&:user)).to contain_exactly(company, student)
     end
@@ -33,10 +36,19 @@ RSpec.describe "Api::Conversations", type: :request do
     it "本文が空なら 422 で、会話も作られない" do
       log_in_as(company)
 
-      expect { json_post "/api/conversations", { conversation: { student_id: student.id, body: "" } } }
+      expect { json_post "/api/conversations", { conversation: params[:conversation].merge(body: "") } }
         .not_to change(Conversation, :count)
       expect(response).to have_http_status(:unprocessable_content)
       expect(response.parsed_body["errors"]).to eq("body" => [ "本文を入力してください" ])
+    end
+
+    it "担当者名が空なら 422 で、会話も作られない" do
+      log_in_as(company)
+
+      expect { json_post "/api/conversations", { conversation: params[:conversation].merge(sender_name: "") } }
+        .not_to change(Conversation, :count)
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"]).to eq("sender_name" => [ "担当者名を入力してください" ])
     end
 
     it "インターン生は新しい会話を始められない（403）" do
@@ -196,7 +208,7 @@ RSpec.describe "Api::Conversations", type: :request do
 
   describe "募集に紐づけたスカウト（F-03）" do
     let(:posting) { create(:job_posting, company: company, title: "Rails インターン") }
-    let(:params) { { conversation: { student_id: student.id, body: "この募集にご興味はありますか？", job_posting_id: posting.id } } }
+    let(:params) { { conversation: { student_id: student.id, body: "この募集にご興味はありますか？", sender_name: "佐藤 美咲", job_posting_id: posting.id } } }
 
     it "自社の公開中の募集を紐づけて送ると、メッセージに募集の要約が入る" do
       log_in_as(company)

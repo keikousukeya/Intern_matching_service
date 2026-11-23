@@ -2,7 +2,8 @@ module Api
   # 技術ブログの記事の一覧・詳細・作成・更新・削除。
   # 閲覧はログインユーザー全員（公開中のもの）。作成はインターン生・企業のどちらもでき、更新・削除は自分の記事にだけ行える。
   class ArticlesController < ApplicationController
-    PERMITTED_PARAMS = [ :title, :body, :status, { skill_names: [] } ].freeze
+    # contact_name は企業の記事の担当者名（インターン生が送っても保存しない）
+    PERMITTED_PARAMS = [ :title, :body, :status, :contact_name, { skill_names: [] } ].freeze
 
     before_action :require_login!
 

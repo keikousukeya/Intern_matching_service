@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { ApiError } from "@/lib/api";
 import type { User } from "@/lib/auth";
+import { loadContactName, saveContactName } from "@/lib/contactName";
 import { formatDateTime } from "@/lib/format";
 import { partnerOf, useConversation, useMessageActions, type Message } from "@/lib/messages";
 import { FormAlert } from "./FormAlert";
@@ -54,6 +55,9 @@ function View({ id, user }: { id: string; user: User }) {
   if (error || !data) return <FormAlert message="メッセージを読み込めませんでした。" />;
 
   const partner = partnerOf(data.conversation, user);
+  // 企業: 担当者名の初期値は、この会話で自社が最後に使った名前 → このブラウザで最後に使った名前 の順
+  const lastOwnSenderName = messages.findLast((message) => message.sender_id === user.id && message.sender_name)?.sender_name;
+  const initialSenderName = user.role === "company" ? (lastOwnSenderName ?? loadContactName(user.id)) : undefined;
 
   return (
     <div className="flex flex-col gap-4">
@@ -91,8 +95,10 @@ function View({ id, user }: { id: string; user: User }) {
 
         <div className="border-t border-slate-100 px-4 py-4 sm:px-6">
           <MessageComposer
-            onSend={async (body) => {
-              await sendMessage(data.conversation.id, body, jobPostingId);
+            initialSenderName={initialSenderName}
+            onSend={async (body, senderName) => {
+              await sendMessage(data.conversation.id, body, senderName, jobPostingId);
+              if (senderName) saveContactName(user.id, senderName);
               setJobPostingId(null);
             }}
             placeholder={user.role === "student" ? "返信を入力" : "メッセージを入力"}
@@ -123,10 +129,12 @@ function MessageBubble({ message, mine }: { message: Message; mine: boolean }) {
           <JobPostingAttachment posting={message.job_posting} />
         </div>
       )}
-      <time dateTime={message.created_at} className="text-xs text-slate-500">
+      <p className="text-xs text-slate-500">
         {mine && "あなた・"}
-        {formatDateTime(message.created_at)}
-      </time>
+        {/* 企業のメッセージは担当者名を出す（1 社で複数の担当者が送ることもあるため） */}
+        {message.sender_name && `担当: ${message.sender_name}・`}
+        <time dateTime={message.created_at}>{formatDateTime(message.created_at)}</time>
+      </p>
     </div>
   );
 }

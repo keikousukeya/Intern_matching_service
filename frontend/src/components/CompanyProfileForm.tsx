@@ -5,8 +5,11 @@ import { ApiError, type FieldErrors } from "@/lib/api";
 import type { CompanyProfile, CompanyProfileInput } from "@/lib/profile";
 import { useFormChanges, useLeaveGuard } from "@/lib/leaveGuard";
 import { FormAlert } from "./FormAlert";
-import { FormField, TextAreaField } from "./FormField";
+import { FormField } from "./FormField";
 import { FormSection, SubmitRow } from "./FormSection";
+import { MarkdownTextArea } from "./MarkdownTextArea";
+
+const DESCRIPTION_MAX_LENGTH = 2000;
 
 type Props = {
   profile: CompanyProfile | null;
@@ -15,6 +18,8 @@ type Props = {
 
 /** 企業プロフィールの登録・編集フォーム */
 export function CompanyProfileForm({ profile, onSave }: Props) {
+  // 企業概要はプレビューと文字数の表示に使うため、入力中の値を持っておく
+  const [description, setDescription] = useState(profile?.description ?? "");
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
@@ -36,7 +41,6 @@ export function CompanyProfileForm({ profile, onSave }: Props) {
     try {
       await onSave({
         company_name: text("company_name"),
-        contact_name: text("contact_name"),
         description: text("description"),
         website: text("website"),
       });
@@ -69,23 +73,14 @@ export function CompanyProfileForm({ profile, onSave }: Props) {
           requiredMark
           errors={fieldErrors.company_name}
         />
-        <FormField
-          label="担当者名"
-          name="contact_name"
-          defaultValue={profile?.contact_name}
-          autoComplete="name"
-          maxLength={50}
-          required
-          requiredMark
-          hint="スカウトの送信者としてインターン生に表示されます"
-          errors={fieldErrors.contact_name}
-        />
-        <TextAreaField
+        <MarkdownTextArea
           label="企業概要"
           name="description"
-          defaultValue={profile?.description ?? ""}
-          maxLength={2000}
-          hint="事業内容や、インターンで経験できることなど（2000文字まで）"
+          value={description}
+          onChange={setDescription}
+          maxLength={DESCRIPTION_MAX_LENGTH}
+          placeholder={"## 事業内容\n\n…\n\n## インターンで経験できること\n\n- …"}
+          hint="事業内容や、インターンで経験できることなどを書いてください。"
           errors={fieldErrors.description}
         />
         <FormField

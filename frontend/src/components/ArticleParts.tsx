@@ -15,7 +15,7 @@ export function AuthorRoleBadge({ author }: { author: ArticleAuthor }) {
 
 /**
  * 書いた人の名前。プロフィールを見られる場合だけリンクにする。
- *   - 企業: 企業詳細はログインユーザー全員が見られる
+ *   - 企業: 企業詳細はログインユーザー全員が見られる。担当者名があれば「企業名（担当: ○○）」と表示する
  *   - インターン生: プロフィールは企業にだけ公開しているため、閲覧者が企業のときだけリンクにする
  */
 export function AuthorName({ author, viewer, className = "" }: { author: ArticleAuthor; viewer: User; className?: string }) {
@@ -23,11 +23,25 @@ export function AuthorName({ author, viewer, className = "" }: { author: Article
   const href =
     author.role === "company" ? `/companies/${author.user_id}` : viewer.role === "company" ? `/students/${author.user_id}` : null;
 
-  if (!href) return <span className={className}>{name}</span>;
+  const contact = author.role === "company" && author.contact_name && (
+    <span className="font-normal text-slate-500">（担当: {author.contact_name}）</span>
+  );
+
+  if (!href) {
+    return (
+      <span className={className}>
+        {name}
+        {contact}
+      </span>
+    );
+  }
   return (
-    <Link href={href} className={`relative z-10 hover:text-indigo-600 hover:underline ${className}`}>
-      {name}
-    </Link>
+    <span>
+      <Link href={href} className={`relative z-10 hover:text-indigo-600 hover:underline ${className}`}>
+        {name}
+      </Link>
+      {contact}
+    </span>
   );
 }
 

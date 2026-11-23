@@ -179,7 +179,6 @@ function CompanySummary({ profile }: { profile: CompanyProfile }) {
     <div className="grid gap-5 md:grid-cols-[1fr_18rem]">
       <div className="flex min-w-0 flex-col gap-1">
         <p className="text-xl font-bold">{profile.company_name}</p>
-        <p className="text-sm text-slate-600">担当: {profile.contact_name}</p>
         <Link href={`/companies/${profile.user_id}`} className="mt-2 self-start text-sm text-indigo-600 hover:underline">
           インターン生から見える企業ページを確認する →
         </Link>

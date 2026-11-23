@@ -13,12 +13,12 @@ import { RequireUser } from "./RequireUser";
 export function ArticleEditor({ id }: { id?: string }) {
   return (
     <RequireUser>
-      {(user) => (!user.has_profile ? <ProfileRequired /> : id ? <Edit id={id} user={user} /> : <Create />)}
+      {(user) => (!user.has_profile ? <ProfileRequired /> : id ? <Edit id={id} user={user} /> : <Create user={user} />)}
     </RequireUser>
   );
 }
 
-function Create() {
+function Create({ user }: { user: User }) {
   const { create } = useArticleActions();
 
   async function handleSave(input: ArticleInput) {
@@ -26,7 +26,7 @@ function Create() {
     return `/articles/${article.id}`;
   }
 
-  return <ArticleForm article={null} onSave={handleSave} />;
+  return <ArticleForm article={null} user={user} onSave={handleSave} />;
 }
 
 function Edit({ id, user }: { id: string; user: User }) {
@@ -45,7 +45,7 @@ function Edit({ id, user }: { id: string; user: User }) {
     return `/articles/${id}`;
   }
 
-  return <ArticleForm article={data.article} onSave={handleSave} />;
+  return <ArticleForm article={data.article} user={user} onSave={handleSave} />;
 }
 
 function ProfileRequired() {

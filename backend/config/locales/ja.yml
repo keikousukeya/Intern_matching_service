@@ -34,7 +34,6 @@ ja:
       company_profile:
         user: ユーザー
         company_name: 企業名
-        contact_name: 担当者名
         description: 企業概要
         website: Web サイト
       skill:
@@ -47,6 +46,7 @@ ja:
       message:
         body: 本文
         sender: 送信者
+        sender_name: 担当者名
         job_posting: 紐づける募集
       job_posting:
         company: 企業
@@ -66,6 +66,7 @@ ja:
         body: 本文
         status: 公開状態
         skill_names: タグ
+        contact_name: 担当者名
     errors:
       models:
         student_profile:

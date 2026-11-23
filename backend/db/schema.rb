@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_11_23_100000) do
+ActiveRecord::Schema[8.1].define(version: 2026_11_23_110000) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -31,6 +31,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_100000) do
     t.datetime "published_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "contact_name"
     t.index ["author_id"], name: "index_articles_on_author_id"
     t.index ["status", "published_at"], name: "index_articles_on_status_and_published_at"
   end
@@ -38,7 +39,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_100000) do
   create_table "company_profiles", force: :cascade do |t|
     t.bigint "user_id", null: false
     t.string "company_name", null: false
-    t.string "contact_name", null: false
+    t.string "contact_name"
     t.text "description"
     t.string "website"
     t.datetime "created_at", null: false
@@ -102,6 +103,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_11_23_100000) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "job_posting_id"
+    t.string "sender_name"
     t.index ["conversation_id", "created_at"], name: "index_messages_on_conversation_id_and_created_at"
     t.index ["job_posting_id"], name: "index_messages_on_job_posting_id"
     t.index ["sender_id"], name: "index_messages_on_sender_id"

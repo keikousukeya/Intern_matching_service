@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, type ReactNode } from "react";
 import { ApiError } from "@/lib/api";
 import type { User } from "@/lib/auth";
+import { loadContactName, saveContactName } from "@/lib/contactName";
 import { formatPeriod, isSafeUrl } from "@/lib/format";
 import { useMessageActions } from "@/lib/messages";
 import { useStudent } from "@/lib/students";
@@ -94,6 +95,7 @@ function Detail({ id, user }: { id: string; user: User }) {
       <AuthorArticles authorId={student.user_id} viewer={user} />
 
       <ScoutSection
+        userId={user.id}
         studentId={student.user_id}
         studentName={student.name}
         conversationId={data.conversation_id}
@@ -113,12 +115,15 @@ function Detail({ id, user }: { id: string; user: User }) {
  * 無ければ最初のメッセージを書いて送る。送信後は会話の画面へ移動する
  */
 function ScoutSection({
+  userId,
   studentId,
   studentName,
   conversationId,
   hasCompanyProfile,
   onStarted,
 }: {
+  /** ログイン中の企業ユーザー（最後に使った担当者名を読み書きするため） */
+  userId: number;
   studentId: number;
   studentName: string;
   conversationId: number | null;
@@ -130,8 +135,9 @@ function ScoutSection({
   const { startConversation } = useMessageActions();
   const [jobPostingId, setJobPostingId] = useState<number | null>(null);
 
-  async function handleSend(body: string) {
-    const id = await startConversation(studentId, body, jobPostingId);
+  async function handleSend(body: string, senderName: string | null) {
+    const id = await startConversation(studentId, body, senderName ?? "", jobPostingId);
+    saveContactName(userId, senderName ?? "");
     await onStarted(id);
     router.push(`/messages/${id}`);
   }
@@ -156,6 +162,7 @@ function ScoutSection({
           </p>
           <MessageComposer
             onSend={handleSend}
+            initialSenderName={loadContactName(userId)}
             placeholder={`${studentName}さんへのメッセージ`}
             accessory={<JobPostingPicker value={jobPostingId} onChange={setJobPostingId} />}
           />

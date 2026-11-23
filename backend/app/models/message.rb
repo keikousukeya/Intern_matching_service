@@ -1,6 +1,7 @@
 # 会話の中の 1 通のメッセージ
 class Message < ApplicationRecord
   BODY_MAX_LENGTH = 2000
+  SENDER_NAME_MAX_LENGTH = 50
 
   belongs_to :conversation
   belongs_to :sender, class_name: "User"
@@ -9,8 +10,13 @@ class Message < ApplicationRecord
 
   # 前後の空白・改行だけを除く（本文中の改行はそのまま残す）
   normalizes :body, with: ->(body) { body.strip }
+  normalizes :sender_name, with: ->(name) { name.strip.presence }
+
+  # 企業が送るときは担当者名が必要（インターン生には誰が送ってきたかを表示する）。インターン生の送信では使わない
+  before_validation :clear_sender_name_unless_company
 
   validates :body, presence: true, length: { maximum: BODY_MAX_LENGTH }
+  validates :sender_name, presence: true, length: { maximum: SENDER_NAME_MAX_LENGTH }, on: :create, if: :sent_by_company?
   validate :sender_must_be_participant
   validate :job_posting_must_be_senders_published
 
@@ -29,7 +35,15 @@ class Message < ApplicationRecord
   # 送信したら、会話の並び順を更新し、送信者自身は既読にする
   after_create :touch_conversation
 
+  def sent_by_company?
+    sender&.company? || false
+  end
+
   private
+
+  def clear_sender_name_unless_company
+    self.sender_name = nil unless sent_by_company?
+  end
 
   def sender_must_be_participant
     return if conversation.nil? || sender.nil?

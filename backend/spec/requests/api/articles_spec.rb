@@ -24,7 +24,8 @@ RSpec.describe "Api::Articles", type: :request do
       expect(body["articles"].pluck("id")).to eq([ company_article.id, student_article.id ])
       expect(body["articles"].last).to include(
         "title" => student_article.title, "skills" => [ "Ruby" ], "excerpt" => student_article.excerpt,
-        "author" => { "user_id" => student.id, "role" => "student", "name" => student.student_profile.name }
+        "author" => { "user_id" => student.id, "role" => "student", "name" => student.student_profile.name,
+                      "contact_name" => nil }
       )
       expect(body["articles"].last).not_to have_key("body")
       expect(response.body).not_to include(student.email)
@@ -72,7 +73,8 @@ RSpec.describe "Api::Articles", type: :request do
 
   describe "POST /api/articles" do
     let(:params) do
-      { article: { title: "Rails 8 の新機能", body: "## 概要\n\n本文", status: "published", skill_names: %w[Rails] } }
+      { article: { title: "Rails 8 の新機能", body: "## 概要\n\n本文", status: "published", skill_names: %w[Rails],
+                   contact_name: "佐藤 美咲" } }
     end
 
     it "インターン生も企業も記事を書ける" do
@@ -82,6 +84,27 @@ RSpec.describe "Api::Articles", type: :request do
         expect(response).to have_http_status(:created)
         expect(response.parsed_body["article"]).to include("title" => "Rails 8 の新機能", "skills" => [ "Rails" ])
       end
+    end
+
+    it "企業の記事は担当者名が書いた人の情報に入り、インターン生の記事では保存しない" do
+      log_in_as(company)
+      json_post "/api/articles", params
+      expect(response.parsed_body["article"]["author"]).to include("role" => "company", "contact_name" => "佐藤 美咲")
+
+      log_in_as(student)
+      json_post "/api/articles", params
+      expect(response.parsed_body["article"]["author"]).to include("role" => "student", "contact_name" => nil)
+    end
+
+    it "企業が担当者名なしで公開すると 422、下書きなら保存できる" do
+      log_in_as(company)
+
+      json_post "/api/articles", { article: params[:article].merge(contact_name: "") }
+      expect(response).to have_http_status(:unprocessable_content)
+      expect(response.parsed_body["errors"]["contact_name"]).to eq([ "担当者名を入力してください" ])
+
+      json_post "/api/articles", { article: params[:article].merge(contact_name: "", status: "draft") }
+      expect(response).to have_http_status(:created)
     end
 
     it "author_id を送っても、ログイン中のユーザーの記事として作成する" do

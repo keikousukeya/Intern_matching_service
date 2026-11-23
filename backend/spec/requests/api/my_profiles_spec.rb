@@ -103,11 +103,12 @@ RSpec.describe "Api::MyProfiles", type: :request do
     context "企業" do
       before { log_in_as(create(:user, :company)) }
 
-      it "企業プロフィールを作成できる" do
-        json_put "/api/me/profile", { profile: { company_name: "株式会社テスト", contact_name: "担当者" } }
+      it "企業プロフィールを作成できる（担当者名はプロフィールでは扱わない）" do
+        json_put "/api/me/profile", { profile: { company_name: "株式会社テスト" } }
 
         expect(response).to have_http_status(:ok)
         expect(response.parsed_body["profile"]).to include("company_name" => "株式会社テスト")
+        expect(response.parsed_body["profile"]).not_to have_key("contact_name")
       end
 
       it "学生用の項目は受け付けない（許可した項目が無ければ 400）" do
@@ -119,7 +120,7 @@ RSpec.describe "Api::MyProfiles", type: :request do
       end
 
       it "企業名が空なら 422" do
-        json_put "/api/me/profile", { profile: { company_name: "", contact_name: "担当者" } }
+        json_put "/api/me/profile", { profile: { company_name: "", description: "概要" } }
 
         expect(response).to have_http_status(:unprocessable_content)
         expect(response.parsed_body["errors"]["company_name"]).to eq([ "企業名を入力してください" ])
