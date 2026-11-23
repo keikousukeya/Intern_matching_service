@@ -121,11 +121,11 @@ const MY_LIST_PREFIX = "/me/job_postings";
 const isListKey = (key: unknown) =>
   typeof key === "string" && (key.startsWith("/job_postings?") || key.startsWith(MY_LIST_PREFIX));
 
-/** 公開中で締切前の募集の一覧（20 件ずつ） */
-export function useJobPostings(search: JobPostingSearchParams, page: number) {
+/** 公開中で締切前の募集の一覧（20 件ずつ）。enabled が false なら取得しない */
+export function useJobPostings(search: JobPostingSearchParams, page: number, enabled = true) {
   const query = toQuery(search, "skills[]");
   query.set("page", String(page));
-  return useSWR<ListResponse>(`/job_postings?${query}`, fetcher, { keepPreviousData: true });
+  return useSWR<ListResponse>(enabled ? `/job_postings?${query}` : null, fetcher, { keepPreviousData: true });
 }
 
 /** ある企業の公開中の募集（企業詳細の画面用。最初の 20 件） */

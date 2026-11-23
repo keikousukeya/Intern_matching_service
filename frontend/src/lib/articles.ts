@@ -93,11 +93,11 @@ const MY_LIST_PREFIX = "/me/articles";
 const isListKey = (key: unknown) =>
   typeof key === "string" && (key.startsWith("/articles?") || key.startsWith(MY_LIST_PREFIX));
 
-/** 公開中の記事の一覧（新着順・20 件ずつ） */
-export function useArticles(search: ArticleSearchParams, page: number) {
+/** 公開中の記事の一覧（新着順・20 件ずつ）。enabled が false なら取得しない */
+export function useArticles(search: ArticleSearchParams, page: number, enabled = true) {
   const query = toQuery(search, "skills[]");
   query.set("page", String(page));
-  return useSWR<ListResponse>(`/articles?${query}`, fetcher, { keepPreviousData: true });
+  return useSWR<ListResponse>(enabled ? `/articles?${query}` : null, fetcher, { keepPreviousData: true });
 }
 
 /** ある人が書いた公開中の記事（インターン生・企業の詳細画面用。最初の 20 件） */
