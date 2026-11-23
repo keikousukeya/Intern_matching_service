@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, type FieldErrors } from "@/lib/api";
 import type { CompanyProfile, CompanyProfileInput } from "@/lib/profile";
+import { useFormChanges, useLeaveGuard } from "@/lib/leaveGuard";
 import { FormAlert } from "./FormAlert";
 import { FormField, TextAreaField } from "./FormField";
 import { FormSection, SubmitRow } from "./FormSection";
@@ -18,6 +19,10 @@ export function CompanyProfileForm({ profile, onSave }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // 保存していない変更があれば、ページを離れる前に確認する
+  const { dirty, attachForm, handleChange, markSaved } = useFormChanges(null);
+  useLeaveGuard(dirty);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -35,6 +40,7 @@ export function CompanyProfileForm({ profile, onSave }: Props) {
         description: text("description"),
         website: text("website"),
       });
+      markSaved();
       setNotice("企業プロフィールを保存しました。");
     } catch (error) {
       if (error instanceof ApiError) {
@@ -49,7 +55,7 @@ export function CompanyProfileForm({ profile, onSave }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+    <form ref={attachForm} onSubmit={handleSubmit} onChange={handleChange} className="flex flex-col gap-6" noValidate>
       <FormAlert message={formError} />
 
       <FormSection title="企業情報">

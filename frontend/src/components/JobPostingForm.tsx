@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, type FieldErrors } from "@/lib/api";
 import { todayInJst } from "@/lib/format";
+import { useFormChanges, useLeaveGuard } from "@/lib/leaveGuard";
 import { WORK_STYLE_LABELS, type JobPosting, type JobPostingInput, type JobPostingStatus } from "@/lib/jobPostings";
 import { FormAlert } from "./FormAlert";
 import { FormField, SelectField, TextAreaField } from "./FormField";
@@ -14,7 +15,8 @@ const MAX_POSTING_SKILLS = 10;
 type Props = {
   /** 編集時は既存の募集、新規作成時は null */
   posting: JobPosting | null;
-  onSave: (input: JobPostingInput) => Promise<unknown>;
+  /** 保存して、移動先のパスを返す */
+  onSave: (input: JobPostingInput) => Promise<string>;
 };
 
 /** 企業向け: 募集の作成・編集フォーム */
@@ -25,6 +27,10 @@ export function JobPostingForm({ posting, onSave }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  // 保存していない変更があれば、ページを離れる前に確認する（スキル・公開状態は state で持つので別に比べる）
+  const { dirty, attachForm, handleChange } = useFormChanges({ skills, status });
+  const { leave } = useLeaveGuard(dirty);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
@@ -34,7 +40,7 @@ export function JobPostingForm({ posting, onSave }: Props) {
     setFormError(null);
 
     try {
-      await onSave({
+      const href = await onSave({
         title: text("title"),
         description: text("description"),
         starts_on: text("starts_on"),
@@ -46,6 +52,7 @@ export function JobPostingForm({ posting, onSave }: Props) {
         status,
         skill_names: skills,
       });
+      leave(href);
     } catch (error) {
       if (error instanceof ApiError) {
         setFieldErrors(error.errors);
@@ -60,7 +67,7 @@ export function JobPostingForm({ posting, onSave }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+    <form ref={attachForm} onSubmit={handleSubmit} onChange={handleChange} className="flex flex-col gap-6" noValidate>
       <FormAlert message={formError} />
 
       <FormSection title="募集内容">

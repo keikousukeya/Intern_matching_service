@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import { ApiError, type FieldErrors } from "@/lib/api";
 import type { StudentProfile, StudentProfileInput } from "@/lib/profile";
+import { useFormChanges, useLeaveGuard } from "@/lib/leaveGuard";
 import { FormAlert } from "./FormAlert";
 import { FormField, SelectField, TextAreaField } from "./FormField";
 import { FormSection, SubmitRow } from "./FormSection";
@@ -20,6 +21,10 @@ export function StudentProfileForm({ profile, onSave }: Props) {
   const [formError, setFormError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // 保存していない変更があれば、ページを離れる前に確認する（スキルは state で持つので別に比べる）
+  const { dirty, attachForm, handleChange, markSaved } = useFormChanges({ skills });
+  useLeaveGuard(dirty);
 
   // 卒業予定年の選択肢（サーバーの許可範囲と同じ: 前年〜6 年後）
   const thisYear = new Date().getFullYear();
@@ -48,6 +53,7 @@ export function StudentProfileForm({ profile, onSave }: Props) {
         available_to: text("available_to"),
         skill_names: skills,
       });
+      markSaved();
       setNotice("プロフィールを保存しました。");
     } catch (error) {
       if (error instanceof ApiError) {
@@ -62,7 +68,7 @@ export function StudentProfileForm({ profile, onSave }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-6" noValidate>
+    <form ref={attachForm} onSubmit={handleSubmit} onChange={handleChange} className="flex flex-col gap-6" noValidate>
       <FormAlert message={formError} />
 
       <FormSection title="基本情報">
