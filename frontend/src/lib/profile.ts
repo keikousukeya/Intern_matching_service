@@ -83,3 +83,38 @@ export function useMyProfile<R extends Role>(enabled: boolean) {
     },
   };
 }
+
+/** マイページの入力状況の 1 項目 */
+export type ProfileCheckItem = { label: string; filled: boolean };
+
+const present = (value: string | null) => Boolean(value?.trim());
+
+/**
+ * プロフィールの入力状況（マイページで未入力の項目を案内するため）。
+ * 必須の項目は登録済みなら必ず埋まっているが、全体の割合が分かるよう一緒に数える。
+ */
+export function profileChecklist(
+  ...args: [role: "student", profile: StudentProfile] | [role: "company", profile: CompanyProfile]
+): ProfileCheckItem[] {
+  if (args[0] === "student") {
+    const p = args[1];
+    return [
+      { label: "氏名", filled: present(p.name) },
+      { label: "大学", filled: present(p.university) },
+      { label: "卒業予定年", filled: Boolean(p.graduation_year) },
+      { label: "学部・学科", filled: present(p.faculty) },
+      { label: "志望職種", filled: present(p.desired_role) },
+      { label: "希望インターン期間", filled: present(p.available_from) || present(p.available_to) },
+      { label: "スキル", filled: p.skills.length > 0 },
+      { label: "自己紹介", filled: present(p.bio) },
+      { label: "ポートフォリオ・GitHub", filled: present(p.portfolio_url) || present(p.github_url) },
+    ];
+  }
+  const p = args[1];
+  return [
+    { label: "企業名", filled: present(p.company_name) },
+    { label: "担当者名", filled: present(p.contact_name) },
+    { label: "企業概要", filled: present(p.description) },
+    { label: "Web サイト", filled: present(p.website) },
+  ];
+}
