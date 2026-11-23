@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useState } from "react";
 import { WORK_STYLE_LABELS, type JobPostingSearchParams, type WorkStyle } from "@/lib/jobPostings";
 import type { SkillMatch } from "@/lib/students";
-import { FormField, SelectField } from "./FormField";
+import { SelectField } from "./FormField";
+import { SearchPanel, type FilterChip } from "./SearchPanel";
 import { SkillInput } from "./SkillInput";
 import { SkillMatchField } from "./SkillMatchField";
 
@@ -16,14 +17,12 @@ type Props = {
   onClear: () => void;
 };
 
-/** 募集の検索フォーム。入力中は画面内だけで保持し、「検索する」で URL に反映する */
+/** 募集の検索フォーム。入力中は画面内だけで保持し、「検索」で URL に反映する */
 export function JobPostingSearchForm({ initial, onSearch, onClear }: Props) {
   const [skills, setSkills] = useState(initial.skills);
   const [skillMatch, setSkillMatch] = useState<SkillMatch>(initial.skillMatch);
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    const form = new FormData(event.currentTarget);
+  function handleSubmit(form: FormData) {
     onSearch({
       q: String(form.get("q") ?? ""),
       skills,
@@ -33,33 +32,37 @@ export function JobPostingSearchForm({ initial, onSearch, onClear }: Props) {
     });
   }
 
-  return (
-    <form
-      role="search"
-      aria-label="募集の検索"
-      onSubmit={handleSubmit}
-      className="flex flex-col gap-5 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6"
-    >
-      <div className="grid gap-5 sm:grid-cols-[2fr_1fr]">
-        <FormField
-          label="キーワード"
-          name="q"
-          type="search"
-          defaultValue={initial.q}
-          maxLength={100}
-          placeholder="例: Rails 時給"
-          hint="タイトル・業務内容・報酬・企業名・スキルから探します。スペースで区切るとすべてを含む募集に絞り込みます。"
-        />
-        <SelectField label="勤務形態" name="work_style" defaultValue={initial.workStyle}>
-          <option value="">指定しない</option>
-          {Object.entries(WORK_STYLE_LABELS).map(([value, label]) => (
-            <option key={value} value={value}>
-              {label}
-            </option>
-          ))}
-        </SelectField>
-      </div>
+  // 適用中の詳細条件（URL の条件から作る。× でその条件だけ外して検索し直す）
+  const chips: FilterChip[] = [
+    ...initial.skills.map((skill) => ({
+      key: `skill-${skill}`,
+      label: `スキル: ${skill}`,
+      onRemove: () => onSearch({ ...initial, skills: initial.skills.filter((s) => s !== skill) }),
+    })),
+    ...(initial.workStyle
+      ? [
+          {
+            key: "work_style",
+            label: `勤務形態: ${WORK_STYLE_LABELS[initial.workStyle]}`,
+            onRemove: () => onSearch({ ...initial, workStyle: "" }),
+          },
+        ]
+      : []),
+  ];
 
+  return (
+    <SearchPanel
+      ariaLabel="募集の検索"
+      keyword={{
+        defaultValue: initial.q,
+        placeholder: "キーワードで探す（例: Rails 時給）",
+        hint: "タイトル・業務内容・報酬・企業名・スキルから探します。スペースで区切るとすべてを含む募集に絞り込みます。",
+      }}
+      chips={chips}
+      hasFilters={initial.q !== "" || chips.length > 0}
+      onSubmit={handleSubmit}
+      onClear={onClear}
+    >
       <div className="flex flex-col gap-3">
         <SkillInput
           value={skills}
@@ -75,19 +78,16 @@ export function JobPostingSearchForm({ initial, onSearch, onClear }: Props) {
           labels={{ all: "すべてのスキルを必要とする募集", any: "いずれかのスキルを必要とする募集" }}
         />
       </div>
-
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-        <button
-          type="button"
-          onClick={onClear}
-          className="rounded-lg border border-slate-300 px-6 py-2.5 text-slate-700 hover:bg-slate-50"
-        >
-          条件をクリア
-        </button>
-        <button type="submit" className="rounded-lg bg-indigo-600 px-6 py-2.5 font-medium text-white hover:bg-indigo-700">
-          検索する
-        </button>
+      <div className="sm:w-1/3">
+        <SelectField label="勤務形態" name="work_style" defaultValue={initial.workStyle}>
+          <option value="">指定しない</option>
+          {Object.entries(WORK_STYLE_LABELS).map(([value, label]) => (
+            <option key={value} value={value}>
+              {label}
+            </option>
+          ))}
+        </SelectField>
       </div>
-    </form>
+    </SearchPanel>
   );
 }
